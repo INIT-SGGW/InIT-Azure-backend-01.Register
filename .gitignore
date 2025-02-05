@@ -23,6 +23,6 @@ go.work.sum
 
 # env file
 .env
-*.env
+*.env.*
 !.env.example
 
