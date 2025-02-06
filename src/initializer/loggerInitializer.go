@@ -1,7 +1,6 @@
 package initializer
 
 import (
-	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -12,14 +11,8 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-func CreateLogger() *zap.Logger {
+func CreateLogger(logPath string) *zap.Logger {
 	stdout := zapcore.AddSync(os.Stdout)
-
-	logPath, exist := os.LookupEnv("KN_INIT_LOG_PATH")
-	if !exist {
-		fmt.Println("The KN_INIT_LOG_PATH environmental variable is missing")
-		os.Exit(2)
-	}
 
 	file := zapcore.AddSync(&lumberjack.Logger{
 		Filename:   logPath,
