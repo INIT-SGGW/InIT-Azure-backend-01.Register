@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"html/template"
+	"net/url"
 	"strconv"
 
 	"go.uber.org/zap"
@@ -14,28 +15,30 @@ import (
 )
 
 type EmailService struct {
-	service     *Service
-	user        string
-	password    string
-	emailHost   string
-	emailPort   string
-	emailSender string
-	repository  repository.EmailRepository
+	service              *Service
+	user                 string
+	password             string
+	emailHost            string
+	emailPort            string
+	emailSender          string
+	repository           repository.EmailRepository
+	verificationLinkHost string
 }
 
 type EmailTemplateService interface {
 	SendUserVerificationEmail(ctx context.Context, user model.User) error
 }
 
-func NewEmailService(logger *zap.Logger, user, password, emailHost, emailPort, emailSender string, repository repository.EmailRepository) *EmailService {
+func NewEmailService(logger *zap.Logger, user, password, emailHost, emailPort, emailSender, verificationLinkHost string, repository repository.EmailRepository) *EmailService {
 	return &EmailService{
-		service:     NewService(logger),
-		user:        user,
-		password:    password,
-		emailHost:   emailHost,
-		emailPort:   emailPort,
-		emailSender: emailSender,
-		repository:  repository,
+		service:              NewService(logger),
+		user:                 user,
+		password:             password,
+		emailHost:            emailHost,
+		emailPort:            emailPort,
+		emailSender:          emailSender,
+		repository:           repository,
+		verificationLinkHost: verificationLinkHost,
 	}
 }
 
@@ -50,10 +53,26 @@ func (srv EmailService) SendUserVerificationEmail(ctx context.Context, user mode
 			zap.Error(err))
 		return err
 	}
+	linkUrl, err := url.Parse(srv.verificationLinkHost)
+	if err != nil {
+		srv.service.logger.Error("Error creating verification link",
+			zap.String("templateName", templateName),
+			zap.Error(err))
+		return err
+	}
+	linkUrl.Path += "/api/v1/register/verification"
+	params := url.Values{}
+	for _, email := range user.Emails {
+		params.Add("email", email)
+	}
+	params.Add("token", user.VerificationToken)
+	linkUrl.RawQuery += params.Encode()
+
 	templUser := model.UserVerificationEmailTemplateModel{
 		Sender:            srv.emailSender,
 		VerificationToken: user.VerificationToken,
 		Recipients:        user.Emails,
+		VerificationLink:  linkUrl.String(),
 	}
 
 	email, err := srv.fillTemplate(emailTmpl, templUser)

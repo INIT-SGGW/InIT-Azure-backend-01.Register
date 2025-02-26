@@ -27,7 +27,7 @@ func main() {
 		zap.String("Environment", config.Env))
 
 	repo := repository.NewRegisterRepository(config.DbConnStr, config.DbName, logger)
-	registerHandler := handler.NewRegisterHandler(logger, repo, config.SmtpUser, config.SmtpPass, config.SmtpHost, config.SmtpPort, config.SmtpSenderEmail)
+	registerHandler := handler.NewRegisterHandler(logger, repo, config.SmtpUser, config.SmtpPass, config.SmtpHost, config.SmtpPort, config.SmtpSenderEmail, config.VerificationLinkHost)
 
 	r := chi.NewRouter()
 	r.Use(initializer.New(logger))

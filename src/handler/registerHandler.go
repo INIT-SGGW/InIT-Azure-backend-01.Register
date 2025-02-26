@@ -16,12 +16,12 @@ type RegisterHandler struct {
 	emailService    service.EmailTemplateService
 }
 
-func NewRegisterHandler(logger *zap.Logger, repository repository.MongoRepository, user, password, emailHost, emailPort, emailSender string) *RegisterHandler {
+func NewRegisterHandler(logger *zap.Logger, repository repository.MongoRepository, user, password, emailHost, emailPort, emailSender, verificationLinkHost string) *RegisterHandler {
 
 	return &RegisterHandler{
 		handler:         NewHandler(logger),
 		registerService: service.NewRegisterService(logger, repository),
-		emailService:    service.NewEmailService(logger, user, password, emailHost, emailPort, emailSender, repository),
+		emailService:    service.NewEmailService(logger, user, password, emailHost, emailPort, emailSender, verificationLinkHost, repository),
 	}
 }
 
