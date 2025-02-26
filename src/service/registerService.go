@@ -16,32 +16,47 @@ import (
 )
 
 type RegisterService struct {
-	service *Service
+	service    *Service
+	repository repository.RegisterRepository
 }
 
 type UserService interface {
-	SendConfirmationEmail() error
-	CreateNewUser(context.Context, model.RegisterUserRequest) error
+	CreateNewUser(ctx context.Context, dboUser model.User) error
+	MapUserRequestToDBO(request model.RegisterUserRequest) (model.User, error)
 }
 
-func NewRegisterService(logger *zap.Logger, repository repository.RegisterRepository) *RegisterService {
-	return &RegisterService{
-		service: NewService(logger, repository),
+func NewRegisterService(logger *zap.Logger, repository repository.RegisterRepository) RegisterService {
+	return RegisterService{
+		service:    NewService(logger),
+		repository: repository,
 	}
 }
-func (serv RegisterService) CreateNewUser(ctx context.Context, request model.RegisterUserRequest) error {
+func (serv RegisterService) CreateNewUser(ctx context.Context, dboUser model.User) error {
 	defer serv.service.logger.Sync()
 
 	serv.service.logger.Debug("In CreateNewUser method")
 
-	uniqueVerificationToken := uuid.NewString()
+	err := serv.repository.CreateUserInDB(dboUser, ctx)
+	if err != nil {
+		serv.service.logger.Error("Error inserting data to database",
+			zap.Error(err))
+		return err
+	}
+	return nil
+
+}
+func (serv RegisterService) MapUserRequestToDBO(request model.RegisterUserRequest) (model.User, error) {
+	defer serv.service.logger.Sync()
+
+	serv.service.logger.Debug("Start mapping user object to DBO user ")
+
 	hashPass, err := serv.hashPassword(request.Body.Password)
 	if err != nil {
 		serv.service.logger.Error("Error Hashing password",
 			zap.Error(err))
-		return err
+		return model.User{}, err
 	}
-
+	uniqueVerificationToken := uuid.NewString()
 	dboUser := model.User{
 		ID:                primitive.NewObjectID(),
 		CreatedAt:         time.Now(),
@@ -56,13 +71,7 @@ func (serv RegisterService) CreateNewUser(ctx context.Context, request model.Reg
 		VerificationToken: uniqueVerificationToken,
 	}
 
-	err = serv.service.repository.CreateUserInDB(dboUser, ctx)
-	if err != nil {
-		serv.service.logger.Error("Error inserting data to database",
-			zap.Error(err))
-		return err
-	}
-	return nil
+	return dboUser, nil
 
 }
 

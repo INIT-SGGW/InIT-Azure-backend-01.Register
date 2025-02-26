@@ -20,7 +20,7 @@ type RegisterRepository interface {
 	CreateUserInDB(model.User, context.Context) error
 }
 
-func NewMongoRepository(connectionString, dbname string, logger *zap.Logger) MongoRepository {
+func NewRegisterRepository(connectionString, dbname string, logger *zap.Logger) MongoRepository {
 	defer logger.Sync()
 	client, err := NewMongoClient(logger, connectionString, dbname)
 	if err != nil {
@@ -41,12 +41,17 @@ func (repo MongoRepository) CreateUserInDB(user model.User, ctx context.Context)
 
 	coll := repo.client.Database(repo.database).Collection("Users")
 
-	_, err := coll.InsertOne(ctx, user)
+	result, err := coll.InsertOne(ctx, user)
 	if err != nil {
 		repo.logger.Error("Error inserting user into database",
 			zap.Error(err))
 		return err
 	}
+
+	repo.logger.Info("Sucesfully inserted user into database",
+		zap.String("database", repo.database),
+		zap.String("collection", "Users"),
+		zap.Any("userId", result.InsertedID))
 
 	return nil
 }

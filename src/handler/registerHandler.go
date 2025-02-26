@@ -11,15 +11,17 @@ import (
 )
 
 type RegisterHandler struct {
-	handler *Handler
-	service *service.RegisterService
+	handler         *Handler
+	registerService service.UserService
+	emailService    service.EmailTemplateService
 }
 
-func NewRegisterHandler(logger *zap.Logger, repository repository.RegisterRepository) *RegisterHandler {
+func NewRegisterHandler(logger *zap.Logger, repository repository.MongoRepository, user, password, emailHost, emailPort, emailSender string) *RegisterHandler {
 
 	return &RegisterHandler{
-		handler: NewHandler(logger),
-		service: service.NewRegisterService(logger, repository),
+		handler:         NewHandler(logger),
+		registerService: service.NewRegisterService(logger, repository),
+		emailService:    service.NewEmailService(logger, user, password, emailHost, emailPort, emailSender, repository),
 	}
 }
 
@@ -29,14 +31,21 @@ func (han RegisterHandler) HandleRegisterUserRequest(ctx context.Context, input 
 	han.handler.logger.Debug("In HandleRegisterUserRequest method")
 
 	resp := model.RegisterUserResponse{}
-	err := han.service.CreateNewUser(ctx, *input)
+	userDbo, err := han.registerService.MapUserRequestToDBO(*input)
+	if err != nil {
+		resp.Body.Error = err.Error()
+		resp.Body.Status = "Error in mapping to user to dboUser "
+		resp.Status = http.StatusInternalServerError
+		return &resp, err
+	}
+	err = han.registerService.CreateNewUser(ctx, userDbo)
 	if err != nil {
 		resp.Body.Error = err.Error()
 		resp.Body.Status = "User not created"
 		resp.Status = http.StatusInternalServerError
 		return &resp, err
 	}
-	err = han.service.SendConfirmationEmail(ctx, input.Body.Email)
+	err = han.emailService.SendUserVerificationEmail(ctx, userDbo)
 	if err != nil {
 		resp.Body.Error = err.Error()
 		resp.Body.Status = "Confirmation email not send"
