@@ -14,13 +14,6 @@ import (
 func CreateLogger(logPath string) *zap.Logger {
 	stdout := zapcore.AddSync(os.Stdout)
 
-	file := zapcore.AddSync(&lumberjack.Logger{
-		Filename:   logPath,
-		MaxSize:    10, // megabytes
-		MaxBackups: 1,
-		MaxAge:     3, // days
-	})
-
 	level := zap.NewAtomicLevelAt(zap.InfoLevel)
 
 	productionCfg := zap.NewProductionEncoderConfig()
@@ -31,14 +24,26 @@ func CreateLogger(logPath string) *zap.Logger {
 	developmentCfg.EncodeLevel = zapcore.CapitalColorLevelEncoder
 
 	consoleEncoder := zapcore.NewConsoleEncoder(developmentCfg)
-	fileEncoder := zapcore.NewJSONEncoder(productionCfg)
 
-	core := zapcore.NewTee(
-		zapcore.NewCore(consoleEncoder, stdout, level),
-		zapcore.NewCore(fileEncoder, file, level),
-	)
+	if logPath != " " {
+		file := zapcore.AddSync(&lumberjack.Logger{
+			Filename:   logPath,
+			MaxSize:    10, // megabytes
+			MaxBackups: 1,
+			MaxAge:     3, // days
+		})
+		fileEncoder := zapcore.NewJSONEncoder(productionCfg)
 
-	return zap.New(core)
+		core := zapcore.NewTee(
+			zapcore.NewCore(consoleEncoder, stdout, level),
+			zapcore.NewCore(fileEncoder, file, level),
+		)
+		return zap.New(core)
+	} else {
+		core := zapcore.NewTee(zapcore.NewCore(consoleEncoder, stdout, level))
+		return zap.New(core)
+	}
+
 }
 
 func New(logger *zap.Logger) func(next http.Handler) http.Handler {

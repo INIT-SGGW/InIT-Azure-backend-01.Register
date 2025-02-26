@@ -26,8 +26,8 @@ func main() {
 	logger.Info("Starting service",
 		zap.String("Environment", config.Env))
 
-	repo := repository.NewMongoRepository(config.DbConnStr, config.DbName, logger)
-	registerHandler := handler.NewRegisterHandler(logger, repo)
+	repo := repository.NewRegisterRepository(config.DbConnStr, config.DbName, logger)
+	registerHandler := handler.NewRegisterHandler(logger, repo, config.SmtpUser, config.SmtpPass, config.SmtpHost, config.SmtpPort, config.SmtpSenderEmail)
 
 	r := chi.NewRouter()
 	r.Use(initializer.New(logger))
