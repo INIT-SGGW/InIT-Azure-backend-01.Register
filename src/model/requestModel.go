@@ -12,3 +12,10 @@ type RegisterUserRequest struct {
 		IsAggrementFulfielled bool      `json:"aggrement" example:"true" doc:"Check if the aggrement is approved"`
 	}
 }
+
+type UserVerificationRequest struct {
+	Body struct {
+		Email             string `json:"email" example:"john.doe@example.com" doc:"User email already registered to InIT backend"`
+		VerificationToken string `json:"verificationToken" example:"d4f8c767-8e92-4504-8565-3369d78dbc30" doc:"Unique token genereated for each user in registration provided in link as token"`
+	}
+}

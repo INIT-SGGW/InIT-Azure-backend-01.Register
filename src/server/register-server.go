@@ -16,6 +16,8 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humachi"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/cors"
+	"github.com/go-chi/jwtauth"
 )
 
 func main() {
@@ -23,14 +25,26 @@ func main() {
 	logger := initializer.CreateLogger(config.LogPath)
 	defer logger.Sync()
 
+	c := cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"https://initcodingchallenge.pl"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-ICC-API-KEY"},
+		AllowCredentials: false,
+		MaxAge:           300,
+	})
+
 	logger.Info("Starting service",
 		zap.String("Environment", config.Env))
+
+	_ = jwtauth.New("HS256", []byte(config.JWTSecret), nil)
 
 	repo := repository.NewRegisterRepository(config.DbConnStr, config.DbName, logger)
 	registerHandler := handler.NewRegisterHandler(logger, repo, config.SmtpUser, config.SmtpPass, config.SmtpHost, config.SmtpPort, config.SmtpSenderEmail, config.VerificationLinkHost)
 
 	r := chi.NewRouter()
+	r.Use(c)
 	r.Use(initializer.New(logger))
+	r.Use(initializer.AutorizeRequest(config.ApiKey, logger))
 
 	standardApiRouter := chi.NewRouter()
 	r.Mount("/v1/api", standardApiRouter)
@@ -66,4 +80,12 @@ func addRoutes(api huma.API, handler handler.RegisterHandler) {
 		Summary:     "Register user",
 		Description: "Register user and send confirmation email to provided adress with unique token for account verification",
 	}, handler.HandleRegisterUserRequest)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "verify-user",
+		Method:      http.MethodPost,
+		Path:        "/api/v1/register/verifiy",
+		Summary:     "Verify user email",
+		Description: "Based on provided token and email, verify the user email",
+	}, handler.HandleVerificationUserRequest)
 }

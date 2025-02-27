@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"go.uber.org/zap"
 )
@@ -23,6 +24,7 @@ type RegisterService struct {
 type UserService interface {
 	CreateNewUser(ctx context.Context, dboUser model.User) error
 	MapUserRequestToDBO(request model.RegisterUserRequest) (model.User, error)
+	VerifyEmailByToken(ctx context.Context, email, verificationToken string) error
 }
 
 func NewRegisterService(logger *zap.Logger, repository repository.RegisterRepository) RegisterService {
@@ -73,6 +75,41 @@ func (serv RegisterService) MapUserRequestToDBO(request model.RegisterUserReques
 
 	return dboUser, nil
 
+}
+func (serv RegisterService) VerifyEmailByToken(ctx context.Context, email, verificationToken string) error {
+	defer serv.service.logger.Sync()
+
+	dbEmails, err := serv.repository.GetEmailByToken(ctx, verificationToken)
+	if err == mongo.ErrNilDocument {
+		serv.service.logger.Error("The token is not found in database",
+			zap.Error(err))
+		return err
+	}
+	if err != nil {
+		serv.service.logger.Error("Error in email retreival",
+			zap.Error(err))
+		return err
+	}
+	isVerified := false
+	for _, e := range dbEmails {
+		if e == email {
+			isVerified = true
+			err = serv.repository.VerifyUser(ctx, e)
+			if err != nil {
+				serv.service.logger.Error("Error verifying user",
+					zap.Error(err))
+				return err
+			}
+			serv.service.logger.Info("Succesfully verified user email")
+		}
+
+	}
+	if !isVerified {
+		serv.service.logger.Error("None of emails match the user data in the database")
+		return mongo.ErrNilDocument
+	}
+
+	return nil
 }
 
 func (serv RegisterService) SendConfirmationEmail(ctx context.Context, email string) error {

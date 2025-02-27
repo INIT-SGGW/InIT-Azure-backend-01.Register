@@ -6,6 +6,7 @@ import (
 
 	"INIT-SGGW/InIT-Azure-backend-01.Register/model"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
 )
@@ -18,6 +19,8 @@ type MongoRepository struct {
 
 type RegisterRepository interface {
 	CreateUserInDB(model.User, context.Context) error
+	GetEmailByToken(ctx context.Context, verificationToken string) ([]string, error)
+	VerifyUser(ctx context.Context, email string) error
 }
 
 func NewRegisterRepository(connectionString, dbname string, logger *zap.Logger) MongoRepository {
@@ -38,8 +41,9 @@ func (repo MongoRepository) CreateUserInDB(user model.User, ctx context.Context)
 	defer repo.logger.Sync()
 
 	repo.logger.Debug("In CreateUserInDB method")
+	collectionName := "Users"
 
-	coll := repo.client.Database(repo.database).Collection("Users")
+	coll := repo.client.Database(repo.database).Collection(collectionName)
 
 	result, err := coll.InsertOne(ctx, user)
 	if err != nil {
@@ -50,8 +54,62 @@ func (repo MongoRepository) CreateUserInDB(user model.User, ctx context.Context)
 
 	repo.logger.Info("Sucesfully inserted user into database",
 		zap.String("database", repo.database),
-		zap.String("collection", "Users"),
+		zap.String("collection", collectionName),
 		zap.Any("userId", result.InsertedID))
 
 	return nil
+}
+
+func (repo MongoRepository) GetEmailByToken(ctx context.Context, verificationToken string) ([]string, error) {
+	defer repo.logger.Sync()
+	collectionName := "Users"
+
+	repo.logger.Debug("In GetEmailByToken method")
+
+	coll := repo.client.Database(repo.database).Collection(collectionName)
+
+	filter := bson.D{{Key: "token", Value: verificationToken}}
+	var dboUser model.User
+
+	err := coll.FindOne(ctx, filter).Decode(&dboUser)
+	if err == mongo.ErrNilDocument {
+		repo.logger.Error("Cannot find following token in database",
+			zap.String("database", repo.database),
+			zap.String("collection", collectionName),
+			zap.Error(err))
+
+		return []string{}, err
+	}
+	if err != nil {
+		repo.logger.Error("Error retreiving user from database",
+			zap.String("database", repo.database),
+			zap.String("collection", collectionName),
+			zap.Error(err))
+		return []string{}, err
+	}
+
+	return dboUser.Emails, err
+
+}
+
+func (repo MongoRepository) VerifyUser(ctx context.Context, email string) error {
+	defer repo.logger.Sync()
+
+	collectionName := "Users"
+
+	repo.logger.Debug("In VerifyUser method")
+
+	coll := repo.client.Database(repo.database).Collection(collectionName)
+
+	filter := bson.D{{Key: "emails", Value: email}}
+	update := bson.D{{Key: "$set", Value: bson.D{{Key: "verified", Value: true}}}}
+	_, err := coll.UpdateOne(ctx, filter, update)
+	if err != nil {
+		repo.logger.Error("Error updating record",
+			zap.Error(err))
+		return err
+	}
+
+	return nil
+
 }

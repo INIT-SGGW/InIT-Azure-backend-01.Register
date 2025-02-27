@@ -7,6 +7,8 @@ import (
 	"context"
 	"net/http"
 
+	"go.mongodb.org/mongo-driver/mongo"
+
 	"go.uber.org/zap"
 )
 
@@ -58,4 +60,30 @@ func (han RegisterHandler) HandleRegisterUserRequest(ctx context.Context, input 
 
 	return &resp, nil
 
+}
+
+func (han RegisterHandler) HandleVerificationUserRequest(ctx context.Context, input *model.UserVerificationRequest) (*model.VerificationUserResponse, error) {
+	defer han.handler.logger.Sync()
+
+	han.handler.logger.Debug("In HandleVerificationUserRequest method")
+	resp := model.VerificationUserResponse{}
+
+	err := han.registerService.VerifyEmailByToken(ctx, input.Body.Email, input.Body.VerificationToken)
+	if err == mongo.ErrNilDocument {
+		resp.Body.Error = err.Error()
+		resp.Body.Status = "mail and token do not match"
+		resp.Status = http.StatusUnauthorized
+		return &resp, err
+	}
+	if err != nil {
+		resp.Body.Error = err.Error()
+		resp.Body.Status = "internal error"
+		resp.Status = http.StatusInternalServerError
+		return &resp, err
+	}
+
+	resp.Body.Status = "verified"
+	resp.Status = http.StatusCreated
+
+	return &resp, nil
 }

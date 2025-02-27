@@ -18,6 +18,8 @@ type envConfig struct {
 	SmtpHost             string
 	SmtpSenderEmail      string
 	VerificationLinkHost string
+	JWTSecret            string
+	ApiKey               string
 }
 
 func NewEnvConfig() envConfig {
@@ -84,6 +86,17 @@ func NewEnvConfig() envConfig {
 
 	}
 
+	JWTSecret, exist := os.LookupEnv("INIT_JWT_SECRET")
+	if !exist {
+		err = errors.Join(err, errors.New("Missing environment variable INIT_JWT_SECRET"))
+
+	}
+	ApiKey, exist := os.LookupEnv("INIT_API_KEY")
+	if !exist {
+		err = errors.Join(err, errors.New("Missing environment variable INIT_API_KEY"))
+
+	}
+
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(2)
@@ -101,6 +114,8 @@ func NewEnvConfig() envConfig {
 		SmtpHost:             SmtpHost,
 		SmtpSenderEmail:      SmtpSenderEmail,
 		VerificationLinkHost: VerificationLinkHost,
+		JWTSecret:            JWTSecret,
+		ApiKey:               ApiKey,
 	}
 
 }
