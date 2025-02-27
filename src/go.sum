@@ -1,5 +1,5 @@
-github.com/danielgtaylor/huma/v2 v2.28.0 h1:W+hIT52MigO73edJNJWXU896uC99xSBWpKoE2PRyybM=
-github.com/danielgtaylor/huma/v2 v2.28.0/go.mod h1:67KO0zmYEkR+LVUs8uqrcvf44G1wXiMIu94LV/cH2Ek=
+github.com/danielgtaylor/huma/v2 v2.30.0 h1:pdqr3aBmoZ7vbtkr5+yiqUBvB0s6VglGMwZXeedkwZw=
+github.com/danielgtaylor/huma/v2 v2.30.0/go.mod h1:9BxJwkeoPPDEJ2Bg4yPwL1mM1rYpAwCAWFKoo723spk=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/go-chi/chi v1.5.5 h1:vOB/HbEMt9QqBqErz07QehcOKHaWFtuj87tTDVz2qXE=
