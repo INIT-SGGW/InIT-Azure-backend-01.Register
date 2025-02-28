@@ -125,12 +125,29 @@ func (han RegisterHandler) HandleLoginUserRequest(ctx context.Context, input *mo
 		return &resp, err
 	}
 	resp.SetCookie = http.Cookie{
-		Name:  "jwt",
-		Value: tokenString,
+		Name:   "jwt",
+		Value:  tokenString,
+		MaxAge: 3600,
 	}
 
 	resp.Body.Status = "sucesfully log in"
 	resp.Status = http.StatusOK
+
+	return &resp, nil
+}
+
+func (han RegisterHandler) HandleLogoutRequest(ctx context.Context, input *model.LogoutUserRequest) (*model.LogoutResponse, error) {
+	defer han.handler.logger.Sync()
+
+	resp := model.LogoutResponse{}
+
+	resp.SetCookie = http.Cookie{
+		Name:   "jwt",
+		Value:  "",
+		MaxAge: -1,
+	}
+
+	resp.Body.Message = "user sucesfully logout"
 
 	return &resp, nil
 }

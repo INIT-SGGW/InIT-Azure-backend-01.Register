@@ -26,3 +26,5 @@ type LoginUserRequest struct {
 		Password string `json:"password" example:"secretPa$$word!" doc:"Password send for authentication"`
 	}
 }
+
+type LogoutUserRequest struct{}

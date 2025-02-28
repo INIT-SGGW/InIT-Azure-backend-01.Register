@@ -28,7 +28,7 @@ func main() {
 	c := cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"https://initcodingchallenge.pl"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-ICC-API-KEY"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-ICC-API-KEY", "JWT"},
 		AllowCredentials: false,
 		MaxAge:           300,
 	})
@@ -97,4 +97,11 @@ func addRoutes(api huma.API, handler handler.RegisterHandler) {
 		Description: "Login user sending JWT cookie to client for further authentication",
 	}, handler.HandleLoginUserRequest)
 
+	huma.Register(api, huma.Operation{
+		OperationID: "logout-user",
+		Method:      http.MethodPost,
+		Path:        "/api/v1/register/logout",
+		Summary:     "Logout user",
+		Description: "Remove JWT token from client",
+	}, handler.HandleLogoutRequest)
 }

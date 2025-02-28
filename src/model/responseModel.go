@@ -31,3 +31,9 @@ type LoginUserResponse struct {
 		Error  string `json:"error,omitempty" example:"email and password do not match" doc:"Errors in user authentication"`
 	}
 }
+type LogoutResponse struct {
+	SetCookie http.Cookie `header:"Set-Cookie"`
+	Body      struct {
+		Message string `json:"message" example:"user sucesfully logout" doc:"Message from backend server"`
+	}
+}
