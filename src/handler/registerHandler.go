@@ -87,3 +87,15 @@ func (han RegisterHandler) HandleVerificationUserRequest(ctx context.Context, in
 
 	return &resp, nil
 }
+
+func (han RegisterHandler) HandleLoginUserRequest(ctx context.Context, input *model.LoginUserRequest) (*model.LoginUserResponse, error) {
+	defer han.handler.logger.Sync()
+
+	han.handler.logger.Debug("In HandleLoginUserRequest method")
+	resp := model.LoginUserResponse{}
+
+	resp.Body.Status = "sucesfully log in"
+	resp.Status = http.StatusOK
+
+	return &resp, nil
+}

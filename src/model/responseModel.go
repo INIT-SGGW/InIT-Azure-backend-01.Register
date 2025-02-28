@@ -20,3 +20,11 @@ type VerificationUserResponse struct {
 		Error  string `json:"error,omitempty" example:"email and token do not match" doc:"Errors in user verification"`
 	}
 }
+
+type LoginUserResponse struct {
+	Status int
+	Body   struct {
+		Status string `json:"status" example:"sucesfully log in" doc:"Status of login operation"`
+		Error  string `json:"error,omitempty" example:"email and password do not match" doc:"Errors in user authentication"`
+	}
+}

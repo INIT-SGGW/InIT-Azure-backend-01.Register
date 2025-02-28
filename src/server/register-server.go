@@ -88,4 +88,13 @@ func addRoutes(api huma.API, handler handler.RegisterHandler) {
 		Summary:     "Verify user email",
 		Description: "Based on provided token and email, verify the user email",
 	}, handler.HandleVerificationUserRequest)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "login-user",
+		Method:      http.MethodPost,
+		Path:        "/api/v1/register/login",
+		Summary:     "Login user",
+		Description: "Login user sending JWT cookie to client for further authentication",
+	}, handler.HandleLoginUserRequest)
+
 }
