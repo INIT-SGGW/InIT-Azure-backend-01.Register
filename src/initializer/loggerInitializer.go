@@ -74,3 +74,29 @@ func New(logger *zap.Logger) func(next http.Handler) http.Handler {
 	}
 
 }
+
+func AutorizeRequest(apiKey string, logger *zap.Logger) func(next http.Handler) http.Handler {
+	if apiKey == "" {
+		return func(next http.Handler) http.Handler { return next }
+	}
+
+	return func(next http.Handler) http.Handler {
+		fn := func(w http.ResponseWriter, r *http.Request) {
+			defer logger.Sync()
+
+			apiKeyHeader := "X-ICC-API-KEY"
+			sendedApiKey := r.Header.Get(apiKeyHeader)
+			if sendedApiKey == sendedApiKey {
+				logger.Info("Valid API key")
+				next.ServeHTTP(w, r)
+			} else {
+				logger.Error("Invalid request api key ")
+				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+				return
+			}
+
+		}
+		return http.HandlerFunc(fn)
+	}
+
+}

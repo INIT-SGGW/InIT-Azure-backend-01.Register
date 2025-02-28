@@ -7,16 +7,19 @@ import (
 )
 
 type envConfig struct {
-	Env             string
-	DbConnStr       string
-	DbName          string
-	LogPath         string
-	ListenPort      string
-	SmtpPass        string
-	SmtpUser        string
-	SmtpPort        string
-	SmtpHost        string
-	SmtpSenderEmail string
+	Env                  string
+	DbConnStr            string
+	DbName               string
+	LogPath              string
+	ListenPort           string
+	SmtpPass             string
+	SmtpUser             string
+	SmtpPort             string
+	SmtpHost             string
+	SmtpSenderEmail      string
+	VerificationLinkHost string
+	JWTSecret            string
+	ApiKey               string
 }
 
 func NewEnvConfig() envConfig {
@@ -77,6 +80,22 @@ func NewEnvConfig() envConfig {
 		err = errors.Join(err, errors.New("Missing environment variable INIT_SMTP_SENDER_EMAIL"))
 
 	}
+	VerificationLinkHost, exist := os.LookupEnv("INIT_VERI_LINK_BASE")
+	if !exist {
+		err = errors.Join(err, errors.New("Missing environment variable INIT_VERI_LINK_BASE"))
+
+	}
+
+	JWTSecret, exist := os.LookupEnv("INIT_JWT_SECRET")
+	if !exist {
+		err = errors.Join(err, errors.New("Missing environment variable INIT_JWT_SECRET"))
+
+	}
+	ApiKey, exist := os.LookupEnv("INIT_API_KEY")
+	if !exist {
+		err = errors.Join(err, errors.New("Missing environment variable INIT_API_KEY"))
+
+	}
 
 	if err != nil {
 		fmt.Println(err)
@@ -84,16 +103,19 @@ func NewEnvConfig() envConfig {
 	}
 
 	return envConfig{
-		Env:             env,
-		LogPath:         logPath,
-		DbConnStr:       connString,
-		DbName:          dbname,
-		ListenPort:      listenPort,
-		SmtpPass:        smtpPass,
-		SmtpUser:        SmtpUser,
-		SmtpPort:        SmtpPort,
-		SmtpHost:        SmtpHost,
-		SmtpSenderEmail: SmtpSenderEmail,
+		Env:                  env,
+		LogPath:              logPath,
+		DbConnStr:            connString,
+		DbName:               dbname,
+		ListenPort:           listenPort,
+		SmtpPass:             smtpPass,
+		SmtpUser:             SmtpUser,
+		SmtpPort:             SmtpPort,
+		SmtpHost:             SmtpHost,
+		SmtpSenderEmail:      SmtpSenderEmail,
+		VerificationLinkHost: VerificationLinkHost,
+		JWTSecret:            JWTSecret,
+		ApiKey:               ApiKey,
 	}
 
 }
