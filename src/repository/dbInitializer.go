@@ -36,7 +36,7 @@ func testConnection(logger *zap.Logger, client *mongo.Client, database string) e
 	defer logger.Sync()
 
 	// Send a ping to confirm a successful connection
-	if err := client.Database(database).RunCommand(context.TODO(), bson.D{{"ping", 1}}).Err(); err != nil {
+	if err := client.Database(database).RunCommand(context.TODO(), bson.D{{Key: "ping", Value: 1}}).Err(); err != nil {
 		logger.Error("Cannot ping the database",
 			zap.String("database", database))
 		return err
