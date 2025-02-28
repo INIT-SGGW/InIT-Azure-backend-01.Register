@@ -36,10 +36,10 @@ func main() {
 	logger.Info("Starting service",
 		zap.String("Environment", config.Env))
 
-	_ = jwtauth.New("HS256", []byte(config.JWTSecret), nil)
+	authToken := jwtauth.New("HS256", []byte(config.JWTSecret), nil)
 
 	repo := repository.NewRegisterRepository(config.DbConnStr, config.DbName, logger)
-	registerHandler := handler.NewRegisterHandler(logger, repo, config.SmtpUser, config.SmtpPass, config.SmtpHost, config.SmtpPort, config.SmtpSenderEmail, config.VerificationLinkHost)
+	registerHandler := handler.NewRegisterHandler(logger, authToken, repo, config.SmtpUser, config.SmtpPass, config.SmtpHost, config.SmtpPort, config.SmtpSenderEmail, config.VerificationLinkHost)
 
 	r := chi.NewRouter()
 	r.Use(c)

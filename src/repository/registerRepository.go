@@ -21,6 +21,7 @@ type RegisterRepository interface {
 	CreateUserInDB(model.User, context.Context) error
 	GetEmailByToken(ctx context.Context, verificationToken string) ([]string, error)
 	VerifyUser(ctx context.Context, email string) error
+	GetUserByEmail(ctx context.Context, email string) (model.User, error)
 }
 
 func NewRegisterRepository(connectionString, dbname string, logger *zap.Logger) MongoRepository {
@@ -111,5 +112,40 @@ func (repo MongoRepository) VerifyUser(ctx context.Context, email string) error 
 	}
 
 	return nil
+
+}
+
+func (repo MongoRepository) GetUserByEmail(ctx context.Context, email string) (model.User, error) {
+	defer repo.logger.Sync()
+	collectionName := "Users"
+
+	repo.logger.Debug("In GetUserByEmail method")
+
+	coll := repo.client.Database(repo.database).Collection(collectionName)
+
+	filter := bson.D{{Key: "emails", Value: email}}
+	var dboUser model.User
+
+	err := coll.FindOne(ctx, filter).Decode(&dboUser)
+	if err == mongo.ErrNilDocument {
+		repo.logger.Error("Cannot find following user in database",
+			zap.String("database", repo.database),
+			zap.String("collection", collectionName),
+			zap.Error(err))
+
+		return model.User{}, err
+	}
+	if err != nil {
+		repo.logger.Error("Error retreiving user from database",
+			zap.String("database", repo.database),
+			zap.String("collection", collectionName),
+			zap.Error(err))
+		return model.User{}, err
+	}
+	repo.logger.Info("Sucesfully retreive user from database",
+		zap.String("database", repo.database),
+		zap.String("collection", collectionName))
+
+	return dboUser, err
 
 }

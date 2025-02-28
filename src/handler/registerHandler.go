@@ -7,6 +7,8 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/go-chi/jwtauth"
+
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"go.uber.org/zap"
@@ -16,14 +18,16 @@ type RegisterHandler struct {
 	handler         *Handler
 	registerService service.UserService
 	emailService    service.EmailTemplateService
+	authToken       *jwtauth.JWTAuth
 }
 
-func NewRegisterHandler(logger *zap.Logger, repository repository.MongoRepository, user, password, emailHost, emailPort, emailSender, verificationLinkHost string) *RegisterHandler {
+func NewRegisterHandler(logger *zap.Logger, authToken *jwtauth.JWTAuth, repository repository.MongoRepository, user, password, emailHost, emailPort, emailSender, verificationLinkHost string) *RegisterHandler {
 
 	return &RegisterHandler{
 		handler:         NewHandler(logger),
 		registerService: service.NewRegisterService(logger, repository),
 		emailService:    service.NewEmailService(logger, user, password, emailHost, emailPort, emailSender, verificationLinkHost, repository),
+		authToken:       authToken,
 	}
 }
 
@@ -93,6 +97,37 @@ func (han RegisterHandler) HandleLoginUserRequest(ctx context.Context, input *mo
 
 	han.handler.logger.Debug("In HandleLoginUserRequest method")
 	resp := model.LoginUserResponse{}
+
+	isAuthenticate, user, err := han.registerService.AuthenticateUser(input.Body.Email, input.Body.Password, ctx)
+	if err != nil && err != mongo.ErrNilDocument {
+
+		resp.Body.Error = err.Error()
+		resp.Body.Status = "internal error"
+		resp.Status = http.StatusInternalServerError
+		return &resp, err
+	}
+	if !isAuthenticate {
+		resp.Body.Error = err.Error()
+		resp.Body.Status = "email and password do not match"
+		resp.Status = http.StatusUnauthorized
+		return &resp, err
+	}
+
+	claims := map[string]interface{}{"id": user.ID, "email": input.Body.Email}
+	_, tokenString, err := han.authToken.Encode(claims)
+	if err != nil {
+		han.handler.logger.Error("Error creating token",
+			zap.Error(err))
+
+		resp.Body.Error = err.Error()
+		resp.Body.Status = "internal error"
+		resp.Status = http.StatusInternalServerError
+		return &resp, err
+	}
+	resp.SetCookie = http.Cookie{
+		Name:  "jwt",
+		Value: tokenString,
+	}
 
 	resp.Body.Status = "sucesfully log in"
 	resp.Status = http.StatusOK

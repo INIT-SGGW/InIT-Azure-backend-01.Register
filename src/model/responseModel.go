@@ -1,5 +1,7 @@
 package model
 
+import "net/http"
+
 type HealthProbeResponse struct {
 	Body struct {
 		Status string `json:"status" example:"I'm Alive!" doc:"Health check"`
@@ -22,8 +24,9 @@ type VerificationUserResponse struct {
 }
 
 type LoginUserResponse struct {
-	Status int
-	Body   struct {
+	SetCookie http.Cookie `header:"Set-Cookie"`
+	Status    int
+	Body      struct {
 		Status string `json:"status" example:"sucesfully log in" doc:"Status of login operation"`
 		Error  string `json:"error,omitempty" example:"email and password do not match" doc:"Errors in user authentication"`
 	}
