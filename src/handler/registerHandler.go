@@ -130,6 +130,7 @@ func (han RegisterHandler) HandleLoginUserRequest(ctx context.Context, input *mo
 		MaxAge: 3600,
 	}
 
+	resp.Body.UserID = user.ID.String()
 	resp.Body.Status = "sucesfully log in"
 	resp.Status = http.StatusOK
 
@@ -151,3 +152,18 @@ func (han RegisterHandler) HandleLogoutRequest(ctx context.Context, input *model
 
 	return &resp, nil
 }
+
+// func (han RegisterHandler) HandleGetUserRequest(ctx context.Context, input *model.GetUserRequest) (*model.GetUserResponse, error) {
+// 	defer han.handler.logger.Sync()
+
+// 	idFromInput := input.Id
+// 	_, claims, _ := jwtauth.FromContext(ctx)
+
+// 	han.handler.logger.Info("Test tokens",
+// 		zap.String("idFromInput", idFromInput),
+// 		zap.Any("idFromToken", claims))
+
+// 	resp := model.GetUserResponse{}
+
+// 	return &resp, nil
+// }

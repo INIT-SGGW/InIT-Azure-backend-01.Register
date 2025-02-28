@@ -45,9 +45,10 @@ func main() {
 	r.Use(c)
 	r.Use(initializer.New(logger))
 	r.Use(initializer.AutorizeRequest(config.ApiKey, logger))
-
-	standardApiRouter := chi.NewRouter()
-	r.Mount("/v1/api", standardApiRouter)
+	r.Route("/api/v1/register/user", func(r chi.Router) {
+		r.Use(jwtauth.Verifier(authToken))
+		r.Use(jwtauth.Authenticator)
+	})
 
 	api := createHumaApi("KN INIT Website Register API", "1.0.0", r)
 	addRoutes(api, *registerHandler)
@@ -66,6 +67,17 @@ func createHumaApi(title, version string, r chi.Router) huma.API {
 }
 
 func addRoutes(api huma.API, handler handler.RegisterHandler) {
+
+	// middleware := func(ctx huma.Context, next func(huma.Context)) {
+	// 	// Read a cookie by name.
+	// 	sessionCookie, _ := huma.ReadCookie(ctx, "jwt")
+	// 	fmt.Println(sessionCookie)
+
+	// 	// Read all the cookies from the request.
+	// 	cookies := huma.ReadCookies(ctx)
+	// 	fmt.Println(cookies)
+	// 	next(ctx)
+	// }
 
 	huma.Get(api, "/hearthbeat", func(ctx context.Context, input *struct{}) (*model.HealthProbeResponse, error) {
 		resp := &model.HealthProbeResponse{}
@@ -104,4 +116,13 @@ func addRoutes(api huma.API, handler handler.RegisterHandler) {
 		Summary:     "Logout user",
 		Description: "Remove JWT token from client",
 	}, handler.HandleLogoutRequest)
+
+	// huma.Register(api, huma.Operation{
+	// 	OperationID: "get-user",
+	// 	Method:      http.MethodGet,
+	// 	Path:        "/api/v1/register/user/{id}",
+	// 	Summary:     "Get user by id",
+	// 	Description: "Get user data from database",
+	// 	Middlewares: huma.Middlewares{middleware},
+	// }, handler.HandleGetUserRequest)
 }
