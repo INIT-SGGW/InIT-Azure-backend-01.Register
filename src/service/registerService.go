@@ -26,6 +26,7 @@ type UserService interface {
 	MapUserRequestToDBO(request model.RegisterUserRequest) (model.User, error)
 	VerifyEmailByToken(ctx context.Context, email, verificationToken string) error
 	AuthenticateUser(email, password string, ctx context.Context) (bool, model.User, error)
+	GetUserById(id string, ctx context.Context) (model.User, error)
 }
 
 func NewRegisterService(logger *zap.Logger, repository repository.RegisterRepository) RegisterService {
@@ -131,6 +132,26 @@ func (serv RegisterService) AuthenticateUser(email, password string, ctx context
 
 	return isAuthenticate, userDbo, err
 
+}
+
+func (serv RegisterService) GetUserById(id string, ctx context.Context) (model.User, error) {
+	defer serv.service.logger.Sync()
+
+	userDbo, err := serv.repository.GetUserByID(ctx, id)
+	if err == mongo.ErrNilDocument {
+		serv.service.logger.Error("Cannot find the user in database",
+			zap.Error(err))
+		return model.User{}, err
+	}
+	if err != nil {
+		serv.service.logger.Error("Error retreiving user from database",
+			zap.Error(err))
+		return model.User{}, err
+	}
+	serv.service.logger.Info("Succesfully get user from database",
+		zap.String("userId", userDbo.ID.String()))
+
+	return userDbo, nil
 }
 
 func (RegisterService) hashPassword(password string) (string, error) {

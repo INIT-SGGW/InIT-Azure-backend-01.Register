@@ -1,6 +1,9 @@
 package model
 
-import "time"
+import (
+	"net/http"
+	"time"
+)
 
 type RegisterUserRequest struct {
 	Body struct {
@@ -30,5 +33,6 @@ type LoginUserRequest struct {
 type LogoutUserRequest struct{}
 
 type GetUserRequest struct {
-	Id string `path:"id" example:"67c0df2b24397b2e860be392" doc:"requested user id"`
+	JwtCookie http.Cookie `cookie:"jwt"`
+	Id        string      `path:"id" example:"67c0df2b24397b2e860be392" doc:"requested user id"`
 }

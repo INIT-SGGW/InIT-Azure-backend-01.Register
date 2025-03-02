@@ -43,12 +43,13 @@ type LogoutResponse struct {
 }
 
 type GetUserResponse struct {
+	Status int
+
 	Body struct {
 		Id                    string    `json:"id" example:"67c0df2b24397b2e860be392" doc:"Unique user identifier"`
 		FirstName             string    `json:"firstName" example:"John" doc:"User first name"`
 		LastName              string    `json:"lastName" example:"Doe" doc:"User last name"`
 		Emails                []string  `json:"emails" example:"john.doe@example.com,john.doe@johndoe.com" doc:"User emails"`
-		Password              string    `json:"password" example:"Pa$$word123!" doc:"User Password"`
 		DateOfBirth           time.Time `json:"dateOfBirth" example:"2000-03-23T07:00:00+01:00" doc:"Date of birth for age information"`
 		IsVerified            bool      `json:"verified" example:"true" doc:"true if user verified any of emails"`
 		IsAggrementFulfielled bool      `json:"aggrement" example:"true" doc:"Check if the aggrement is approved"`

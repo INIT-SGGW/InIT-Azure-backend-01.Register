@@ -68,16 +68,20 @@ func createHumaApi(title, version string, r chi.Router) huma.API {
 
 func addRoutes(api huma.API, handler handler.RegisterHandler) {
 
-	// middleware := func(ctx huma.Context, next func(huma.Context)) {
-	// 	// Read a cookie by name.
-	// 	sessionCookie, _ := huma.ReadCookie(ctx, "jwt")
-	// 	fmt.Println(sessionCookie)
+	middleware := func(ctx huma.Context, next func(huma.Context)) {
+		// Read a cookie by name.
+		sessionCookie, err := huma.ReadCookie(ctx, "jwt")
+		if err != nil {
+			huma.WriteErr(api, ctx, http.StatusUnauthorized,
+				"JWT cookie do not present", fmt.Errorf("Not logged in user"),
+			)
+			return
+		}
 
-	// 	// Read all the cookies from the request.
-	// 	cookies := huma.ReadCookies(ctx)
-	// 	fmt.Println(cookies)
-	// 	next(ctx)
-	// }
+		ctx = huma.WithValue(ctx, "jwt", sessionCookie.Value)
+		ctx.SetHeader("jwt", sessionCookie.Value)
+		next(ctx)
+	}
 
 	huma.Get(api, "/hearthbeat", func(ctx context.Context, input *struct{}) (*model.HealthProbeResponse, error) {
 		resp := &model.HealthProbeResponse{}
@@ -117,12 +121,12 @@ func addRoutes(api huma.API, handler handler.RegisterHandler) {
 		Description: "Remove JWT token from client",
 	}, handler.HandleLogoutRequest)
 
-	// huma.Register(api, huma.Operation{
-	// 	OperationID: "get-user",
-	// 	Method:      http.MethodGet,
-	// 	Path:        "/api/v1/register/user/{id}",
-	// 	Summary:     "Get user by id",
-	// 	Description: "Get user data from database",
-	// 	Middlewares: huma.Middlewares{middleware},
-	// }, handler.HandleGetUserRequest)
+	huma.Register(api, huma.Operation{
+		OperationID: "get-user",
+		Method:      http.MethodGet,
+		Path:        "/api/v1/register/user/{id}",
+		Summary:     "Get user by id",
+		Description: "Get user data from database",
+		Middlewares: huma.Middlewares{middleware},
+	}, handler.HandleGetUserRequest)
 }

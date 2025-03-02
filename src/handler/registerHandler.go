@@ -6,6 +6,7 @@ import (
 	"INIT-SGGW/InIT-Azure-backend-01.Register/service"
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/jwtauth"
 
@@ -153,17 +154,66 @@ func (han RegisterHandler) HandleLogoutRequest(ctx context.Context, input *model
 	return &resp, nil
 }
 
-// func (han RegisterHandler) HandleGetUserRequest(ctx context.Context, input *model.GetUserRequest) (*model.GetUserResponse, error) {
-// 	defer han.handler.logger.Sync()
+func (han RegisterHandler) HandleGetUserRequest(ctx context.Context, input *model.GetUserRequest) (*model.GetUserResponse, error) {
+	defer han.handler.logger.Sync()
 
-// 	idFromInput := input.Id
-// 	_, claims, _ := jwtauth.FromContext(ctx)
+	idFromInput := input.Id
+	resp := model.GetUserResponse{}
+	resp.Status = http.StatusUnauthorized
+	resp.Body.Id = "empty"
+	resp.Body.FirstName = "empty"
+	resp.Body.LastName = "empty"
+	resp.Body.Emails = []string{"empty"}
+	resp.Body.DateOfBirth = time.Time{}
+	resp.Body.IsVerified = false
+	resp.Body.IsAggrementFulfielled = false
 
-// 	han.handler.logger.Info("Test tokens",
-// 		zap.String("idFromInput", idFromInput),
-// 		zap.Any("idFromToken", claims))
+	token, err := jwtauth.VerifyToken(han.authToken, input.JwtCookie.Value)
+	if err != nil {
+		han.handler.logger.Error("Error verifying token",
+			zap.Error(err))
 
-// 	resp := model.GetUserResponse{}
+		return &resp, err
+	}
+	claims := token.PrivateClaims()
 
-// 	return &resp, nil
-// }
+	id, exist := claims["id"]
+	if !exist {
+		han.handler.logger.Error("The id field is not present in the token")
+		return &resp, err
+
+	}
+
+	if id.(string) != idFromInput {
+		han.handler.logger.Error("The id field do not match with the one in request")
+
+		return &resp, err
+	}
+	han.handler.logger.Info("User token and id sucesfully verified")
+
+	userDbo, err := han.registerService.GetUserById(idFromInput, ctx)
+	if err != nil {
+		han.handler.logger.Error("Error retreiving user from database",
+			zap.Error(err))
+
+		resp.Status = http.StatusInternalServerError
+		return &resp, err
+	}
+	han.handler.logger.Info("User sucesfully retreive from database")
+
+	resp.Body.Id = userDbo.ID.String()
+	resp.Body.FirstName = userDbo.FirstName
+	resp.Body.LastName = userDbo.LastName
+	resp.Body.Emails = userDbo.Emails
+	resp.Body.DateOfBirth = userDbo.DateOfBirth
+	resp.Body.IsAggrementFulfielled = userDbo.Agreement
+	resp.Body.IsVerified = userDbo.Verified
+
+	han.handler.logger.Info("User sucesfully mapped to response",
+		zap.String("userId", userDbo.ID.String()),
+	)
+
+	resp.Status = http.StatusOK
+
+	return &resp, nil
+}
