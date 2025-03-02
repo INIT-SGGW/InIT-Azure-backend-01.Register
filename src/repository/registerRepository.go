@@ -7,6 +7,7 @@ import (
 	"INIT-SGGW/InIT-Azure-backend-01.Register/model"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
 )
@@ -22,6 +23,7 @@ type RegisterRepository interface {
 	GetEmailByToken(ctx context.Context, verificationToken string) ([]string, error)
 	VerifyUser(ctx context.Context, email string) error
 	GetUserByEmail(ctx context.Context, email string) (model.User, error)
+	GetUserByID(ctx context.Context, id string) (model.User, error)
 }
 
 func NewRegisterRepository(connectionString, dbname string, logger *zap.Logger) MongoRepository {
@@ -131,6 +133,50 @@ func (repo MongoRepository) GetUserByEmail(ctx context.Context, email string) (m
 		repo.logger.Error("Cannot find following user in database",
 			zap.String("database", repo.database),
 			zap.String("collection", collectionName),
+			zap.Error(err))
+
+		return model.User{}, err
+	}
+	if err != nil {
+		repo.logger.Error("Error retreiving user from database",
+			zap.String("database", repo.database),
+			zap.String("collection", collectionName),
+			zap.Error(err))
+		return model.User{}, err
+	}
+	repo.logger.Info("Sucesfully retreive user from database",
+		zap.String("database", repo.database),
+		zap.String("collection", collectionName))
+
+	return dboUser, err
+
+}
+
+func (repo MongoRepository) GetUserByID(ctx context.Context, id string) (model.User, error) {
+	defer repo.logger.Sync()
+	collectionName := "Users"
+
+	repo.logger.Debug("In GetUserByID method")
+
+	coll := repo.client.Database(repo.database).Collection(collectionName)
+	queryId, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		repo.logger.Error("Cannot parse id to ObjectId",
+			zap.String("database", repo.database),
+			zap.String("collection", collectionName),
+			zap.String("id", id),
+			zap.Error(err))
+	}
+
+	filter := bson.D{{Key: "_id", Value: queryId}}
+	var dboUser model.User
+
+	err = coll.FindOne(ctx, filter).Decode(&dboUser)
+	if err == mongo.ErrNilDocument {
+		repo.logger.Error("Cannot find following user in database",
+			zap.String("database", repo.database),
+			zap.String("collection", collectionName),
+			zap.String("id", queryId.String()),
 			zap.Error(err))
 
 		return model.User{}, err
