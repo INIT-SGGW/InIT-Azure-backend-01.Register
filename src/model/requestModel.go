@@ -11,6 +11,10 @@ type RegisterUserRequest struct {
 		LastName              string    `json:"lastName" example:"Doe" doc:"User last name"`
 		Email                 string    `json:"email" example:"john.doe@example.com" doc:"User email, the confirmation will be send to that adress"`
 		Password              string    `json:"password" example:"Pa$$word123!" doc:"User Password"`
+		StudentIndex          string    `json:"studentIndex" example:"222222" doc:"Student index"`
+		AcademicYear          int       `json:"academicYear" example:"3" doc:"Academic year of student"`
+		Faculty               string    `json:"faculity" example:"Wydzial Budownictwa i Inzynieri Srodowiska" doc:"Faculty on the sggw, where student is assigned"`
+		Degree                string    `json:"degree" example:"Bachelor" doc:"deggree of studies student attend to"`
 		DateOfBirth           time.Time `json:"dateOfBirth" example:"2000-03-23T07:00:00+01:00" doc:"Date of birth for age information"`
 		IsAggrementFulfielled bool      `json:"aggrement" example:"true" doc:"Check if the aggrement is approved"`
 	}
@@ -35,4 +39,16 @@ type LogoutUserRequest struct{}
 type GetUserRequest struct {
 	JwtCookie http.Cookie `cookie:"jwt"`
 	Id        string      `path:"id" example:"67c0df2b24397b2e860be392" doc:"requested user id"`
+}
+
+type UpdateUserRequest struct {
+	Body struct {
+		FirstName             string    `json:"firstName" example:"John" doc:"User first name"`
+		LastName              string    `json:"lastName" example:"Doe" doc:"User last name"`
+		AcademicYear          int       `json:"academicYear" example:"3" doc:"Academic year of student"`
+		Faculty               string    `json:"faculity" example:"Wydzial Budownictwa i Inzynieri Srodowiska" doc:"Faculty on the sggw, where student is assigned"`
+		Degree                string    `json:"degree" example:"Bachelor" doc:"deggree of studies student attend to"`
+		DateOfBirth           time.Time `json:"dateOfBirth" example:"2000-03-23T07:00:00+01:00" doc:"Date of birth for age information"`
+		IsAggrementFulfielled bool      `json:"aggrement" example:"true" doc:"Check if the aggrement is approved"`
+	}
 }

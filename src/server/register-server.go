@@ -129,4 +129,13 @@ func addRoutes(api huma.API, handler handler.RegisterHandler) {
 		Description: "Get user data from database",
 		Middlewares: huma.Middlewares{middleware},
 	}, handler.HandleGetUserRequest)
+
+	// huma.Register(api, huma.Operation{
+	// 	OperationID: "update-user",
+	// 	Method:      http.MethodPut,
+	// 	Path:        "/api/v1/register/user/update/{id}",
+	// 	Summary:     "Update user by id",
+	// 	Description: "Update user data by sending new updated form",
+	// 	Middlewares: huma.Middlewares{middleware},
+	// }, handler.HandleUpdateUserRequest)
 }
