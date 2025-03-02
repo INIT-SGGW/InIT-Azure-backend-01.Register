@@ -14,6 +14,9 @@ type User struct {
 	LastName          string             `bson:"last_name"`
 	Password          string             `bson:"password"`
 	Emails            []string           `bson:"emails"`
+	AcademicYear      int                `bson:"academic_year"`
+	Faculty           string             `bson:"faculity"`
+	Degree            string             `bson:"degree"`
 	DateOfBirth       time.Time          `bson:"date_of_birth"`
 	Agreement         bool               `bson:"agreement"`
 	StudentIndex      string             `bson:"student_index,omitempty"`

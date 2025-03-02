@@ -208,6 +208,9 @@ func (han RegisterHandler) HandleGetUserRequest(ctx context.Context, input *mode
 	resp.Body.DateOfBirth = userDbo.DateOfBirth
 	resp.Body.IsAggrementFulfielled = userDbo.Agreement
 	resp.Body.IsVerified = userDbo.Verified
+	resp.Body.AcademicYear = userDbo.AcademicYear
+	resp.Body.Faculty = userDbo.Faculty
+	resp.Body.Degree = userDbo.Degree
 
 	han.handler.logger.Info("User sucesfully mapped to response",
 		zap.String("userId", userDbo.ID.String()),

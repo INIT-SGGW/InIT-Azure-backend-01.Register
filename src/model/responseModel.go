@@ -50,6 +50,9 @@ type GetUserResponse struct {
 		FirstName             string    `json:"firstName" example:"John" doc:"User first name"`
 		LastName              string    `json:"lastName" example:"Doe" doc:"User last name"`
 		Emails                []string  `json:"emails" example:"john.doe@example.com,john.doe@johndoe.com" doc:"User emails"`
+		AcademicYear          int       `json:"academicYear" example:"3" doc:"Academic year of student"`
+		Faculty               string    `json:"faculity" example:"Wydzial Budownictwa i Inzynieri Srodowiska" doc:"Faculty on the sggw, where student is assigned"`
+		Degree                string    `json:"degree" example:"Bachelor" doc:"deggree of studies student attend to"`
 		DateOfBirth           time.Time `json:"dateOfBirth" example:"2000-03-23T07:00:00+01:00" doc:"Date of birth for age information"`
 		IsVerified            bool      `json:"verified" example:"true" doc:"true if user verified any of emails"`
 		IsAggrementFulfielled bool      `json:"aggrement" example:"true" doc:"Check if the aggrement is approved"`
