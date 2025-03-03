@@ -44,6 +44,7 @@ func main() {
 	r := chi.NewRouter()
 	r.Use(c)
 	r.Use(initializer.New(logger))
+	r.Use(initializer.Recovery)
 	r.Use(initializer.AutorizeRequest(config.ApiKey, logger))
 	r.Route("/api/v1/register/user", func(r chi.Router) {
 		r.Use(jwtauth.Verifier(authToken))

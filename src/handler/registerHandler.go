@@ -108,7 +108,7 @@ func (han RegisterHandler) HandleLoginUserRequest(ctx context.Context, input *mo
 		return &resp, err
 	}
 	if !isAuthenticate {
-		resp.Body.Error = err.Error()
+		resp.Body.Error = "authentication failed"
 		resp.Body.Status = "email and password do not match"
 		resp.Status = http.StatusUnauthorized
 		return &resp, err
