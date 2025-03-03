@@ -126,3 +126,23 @@ func Recovery(next http.Handler) http.Handler {
 
 	})
 }
+
+func CorsHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		if r.Method == "OPTIONS" {
+			headers := w.Header()
+			headers.Add("Access-Control-Allow-Origin", "https://initcodingchallenge.pl")
+			headers.Add("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, X-ICC-API-KEY, Authorization, Accept, origin, Cache-Control, jwt, Content-Security-Policy")
+			headers.Add("Access-Control-Allow-Methods", "GET, POST,PUT,DELETE,OPTIONS")
+			headers.Add("Access-Control-Allow-Credentials", "true")
+			w.Header().Set("Content-Type", "application/json")
+
+			w.WriteHeader(204)
+
+		} else {
+			next.ServeHTTP(w, r)
+		}
+
+	})
+}
