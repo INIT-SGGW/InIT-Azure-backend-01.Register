@@ -49,6 +49,11 @@ func (repo MongoRepository) CreateUserInDB(user model.User, ctx context.Context)
 	coll := repo.client.Database(repo.database).Collection(collectionName)
 
 	result, err := coll.InsertOne(ctx, user)
+	if mongo.IsDuplicateKeyError(err) {
+		repo.logger.Error("User with following email already exists",
+			zap.Error(err))
+		return err
+	}
 	if err != nil {
 		repo.logger.Error("Error inserting user into database",
 			zap.Error(err))

@@ -42,10 +42,19 @@ func (han RegisterHandler) HandleRegisterUserRequest(ctx context.Context, input 
 	if err != nil {
 		resp.Body.Error = err.Error()
 		resp.Body.Status = "Error in mapping to user to dboUser "
-		resp.Status = http.StatusInternalServerError
+		resp.Status = http.StatusBadRequest
 		return &resp, err
 	}
+
 	err = han.registerService.CreateNewUser(ctx, userDbo)
+	if mongo.IsDuplicateKeyError(err) {
+		han.handler.logger.Error("User with following email already exists",
+			zap.Error(err))
+		resp.Body.Error = "duplicate user"
+		resp.Body.Status = "User already exist"
+		resp.Status = http.StatusBadRequest
+		return &resp, err
+	}
 	if err != nil {
 		resp.Body.Error = err.Error()
 		resp.Body.Status = "User not created"
@@ -126,9 +135,13 @@ func (han RegisterHandler) HandleLoginUserRequest(ctx context.Context, input *mo
 		return &resp, err
 	}
 	resp.SetCookie = http.Cookie{
-		Name:   "jwt",
-		Value:  tokenString,
-		MaxAge: 3600,
+		Name:     "jwt",
+		Value:    tokenString,
+		MaxAge:   3600,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+		Path:     "/",
 	}
 
 	resp.Body.UserID = user.ID.String()
