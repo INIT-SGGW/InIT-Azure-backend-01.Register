@@ -16,7 +16,6 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humachi"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/cors"
 	"github.com/go-chi/jwtauth"
 )
 
@@ -25,13 +24,13 @@ func main() {
 	logger := initializer.CreateLogger(config.LogPath)
 	defer logger.Sync()
 
-	c := cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"https://initcodingchallenge.pl"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-ICC-API-KEY", "JWT"},
-		AllowCredentials: false,
-		MaxAge:           300,
-	})
+	// c := cors.Handler(cors.Options{
+	// 	AllowedOrigins:   []string{"https://initcodingchallenge.pl"},
+	// 	AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+	// 	AllowedHeaders:   []string{"Content-Type", "Content-Length", "Accept-Encoding", "X-CSRF-Token", "X-ICC-API-KEY", "Authorization", "Accept", "origin", "Cache-Control", "jwt", "Content-Security-Policy"},
+	// 	AllowCredentials: true,
+	// 	MaxAge:           300,
+	// })
 
 	logger.Info("Starting service",
 		zap.String("Environment", config.Env))
@@ -42,7 +41,8 @@ func main() {
 	registerHandler := handler.NewRegisterHandler(logger, authToken, repo, config.SmtpUser, config.SmtpPass, config.SmtpHost, config.SmtpPort, config.SmtpSenderEmail, config.VerificationLinkHost)
 
 	r := chi.NewRouter()
-	r.Use(c)
+	// r.Use(c)
+	r.Use(initializer.CorsHandler)
 	r.Use(initializer.New(logger))
 	r.Use(initializer.Recovery)
 	r.Use(initializer.AutorizeRequest(config.ApiKey, logger))
