@@ -60,7 +60,7 @@ func (srv EmailService) SendUserVerificationEmail(ctx context.Context, user mode
 			zap.Error(err))
 		return err
 	}
-	linkUrl.Path += "/api/v1/register/verification"
+	linkUrl.Path += "/register/email/verification"
 	params := url.Values{}
 	for _, email := range user.Emails {
 		params.Add("email", email)
