@@ -46,7 +46,7 @@ func main() {
 	r.Use(initializer.New(logger))
 	r.Use(initializer.Recovery)
 	r.Use(initializer.AutorizeRequest(config.ApiKey, logger))
-	r.Route("/api/v1/register/user", func(r chi.Router) {
+	r.Route("/register/user", func(r chi.Router) {
 		r.Use(jwtauth.Verifier(authToken))
 		r.Use(jwtauth.Authenticator)
 	})
@@ -55,13 +55,14 @@ func main() {
 	addRoutes(api, *registerHandler)
 
 	http.ListenAndServe(fmt.Sprintf(":%s", config.ListenPort), r)
+
 }
 
 func createHumaApi(title, version string, r chi.Router) huma.API {
 	humaConfig := huma.DefaultConfig(title, version)
-	humaConfig.DocsPath = "/api/v1/register/docs"
-	humaConfig.OpenAPIPath = "/api/v1/register/openapi"
-	humaConfig.SchemasPath = "/api/v1/register/schemas"
+	humaConfig.DocsPath = "/register/docs"
+	humaConfig.OpenAPIPath = "/register/openapi"
+	humaConfig.SchemasPath = "/register/schemas"
 
 	api := humachi.New(r, humaConfig)
 	return api
@@ -93,7 +94,7 @@ func addRoutes(api huma.API, handler handler.RegisterHandler) {
 	huma.Register(api, huma.Operation{
 		OperationID: "register-user",
 		Method:      http.MethodPost,
-		Path:        "/api/v1/register/user",
+		Path:        "/register/user",
 		Summary:     "Register user",
 		Description: "Register user and send confirmation email to provided adress with unique token for account verification",
 	}, handler.HandleRegisterUserRequest)
@@ -101,7 +102,7 @@ func addRoutes(api huma.API, handler handler.RegisterHandler) {
 	huma.Register(api, huma.Operation{
 		OperationID: "verify-user",
 		Method:      http.MethodPost,
-		Path:        "/api/v1/register/verifiy",
+		Path:        "/register/verifiy",
 		Summary:     "Verify user email",
 		Description: "Based on provided token and email, verify the user email",
 	}, handler.HandleVerificationUserRequest)
@@ -109,7 +110,7 @@ func addRoutes(api huma.API, handler handler.RegisterHandler) {
 	huma.Register(api, huma.Operation{
 		OperationID: "login-user",
 		Method:      http.MethodPost,
-		Path:        "/api/v1/register/login",
+		Path:        "/register/login",
 		Summary:     "Login user",
 		Description: "Login user sending JWT cookie to client for further authentication",
 	}, handler.HandleLoginUserRequest)
@@ -117,7 +118,7 @@ func addRoutes(api huma.API, handler handler.RegisterHandler) {
 	huma.Register(api, huma.Operation{
 		OperationID: "logout-user",
 		Method:      http.MethodPost,
-		Path:        "/api/v1/register/logout",
+		Path:        "/register/logout",
 		Summary:     "Logout user",
 		Description: "Remove JWT token from client",
 	}, handler.HandleLogoutRequest)
@@ -125,7 +126,7 @@ func addRoutes(api huma.API, handler handler.RegisterHandler) {
 	huma.Register(api, huma.Operation{
 		OperationID: "get-user",
 		Method:      http.MethodGet,
-		Path:        "/api/v1/register/user/{id}",
+		Path:        "/register/user/{id}",
 		Summary:     "Get user by id",
 		Description: "Get user data from database",
 		Middlewares: huma.Middlewares{middleware},
