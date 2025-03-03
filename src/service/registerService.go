@@ -4,6 +4,8 @@ import (
 	"INIT-SGGW/InIT-Azure-backend-01.Register/model"
 	"INIT-SGGW/InIT-Azure-backend-01.Register/repository"
 	"context"
+	"errors"
+	"regexp"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -41,6 +43,11 @@ func (serv RegisterService) CreateNewUser(ctx context.Context, dboUser model.Use
 	serv.service.logger.Debug("In CreateNewUser method")
 
 	err := serv.repository.CreateUserInDB(dboUser, ctx)
+	if mongo.IsDuplicateKeyError(err) {
+		serv.service.logger.Error("User with following email already exists",
+			zap.Error(err))
+		return err
+	}
 	if err != nil {
 		serv.service.logger.Error("Error inserting data to database",
 			zap.Error(err))
@@ -53,6 +60,13 @@ func (serv RegisterService) MapUserRequestToDBO(request model.RegisterUserReques
 	defer serv.service.logger.Sync()
 
 	serv.service.logger.Debug("Start mapping user object to DBO user ")
+
+	isSggwEmail := serv.verifySggwEmail(request.Body.Email)
+
+	if !isSggwEmail {
+		serv.service.logger.Error("Provided email is not sggw email ")
+		return model.User{}, errors.New("invalid sggw email")
+	}
 
 	hashPass, err := serv.hashPassword(request.Body.Password)
 	if err != nil {
@@ -165,4 +179,20 @@ func (RegisterService) hashPassword(password string) (string, error) {
 func (RegisterService) checkPasswordHash(password, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
+}
+
+func (serv RegisterService) verifySggwEmail(email string) bool {
+	defer serv.service.logger.Sync()
+
+	emailRegex := `^[a-zA-Z]\d{6}@sggw\.edu\.pl$`
+
+	re := regexp.MustCompile(emailRegex)
+
+	if re.MatchString(email) {
+		serv.service.logger.Info("Valid sggw email")
+		return true
+	} else {
+		serv.service.logger.Info("Invalid sggw email")
+		return false
+	}
 }
