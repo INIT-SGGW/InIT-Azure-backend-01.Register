@@ -15,6 +15,7 @@ import (
 const (
 	USER_COLLECTION_NAME           string = "Users"
 	EMAIL_TEMPLATE_COLLECTION_NAME string = "Email-templates"
+	ADMINS_COLLECTION_NAME         string = "Admins"
 )
 
 type MongoRepository struct {

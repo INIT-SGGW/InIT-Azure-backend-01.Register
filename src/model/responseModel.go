@@ -58,3 +58,20 @@ type GetUserResponse struct {
 		IsAggrementFulfielled bool      `json:"aggrement" example:"true" doc:"Check if the aggrement is approved"`
 	}
 }
+
+// Admin endpoints responses
+type RegisterAdminResponse struct {
+	Status int
+	Body   struct {
+		Status  string `json:"status" example:"created" doc:"Status of creating user request"`
+		Message string `json:"message,omitempty" example:"admin already exist" doc:"Errors and additional message about admin user creation"`
+	}
+}
+
+type VerificationAdminResponse struct {
+	Status int
+	Body   struct {
+		Status  string `json:"status" example:"verified" doc:"Status of email verification"`
+		Message string `json:"message,omitempty" example:"email and token do not match" doc:"Errors and information in admin verification"`
+	}
+}

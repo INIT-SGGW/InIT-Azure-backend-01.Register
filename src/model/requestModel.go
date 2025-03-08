@@ -52,3 +52,24 @@ type UpdateUserRequest struct {
 		IsAggrementFulfielled bool      `json:"aggrement" example:"true" doc:"Check if the aggrement is approved"`
 	}
 }
+
+// Admin Endpoints
+
+type RegisterAdminRequest struct {
+	ApiKey string `header:"X-INIT-ADMIN-API-KEY"`
+	Body   struct {
+		FirstName       string `json:"firstName" example:"John" doc:"User first name"`
+		LastName        string `json:"lastName" example:"Doe" doc:"User last name"`
+		DiscordUsername string `json:"discordUsername" example:"JohnDoe" doc:"Username in InIT discord server"`
+		Email           string `json:"email" example:"john.doe@example.com" doc:"User email, the confirmation will be send to that adress"`
+		Password        string `json:"password" example:"Pa$$word123!" doc:"User Password"`
+	}
+}
+
+type VerificationAdminRequest struct {
+	ApiKey string `header:"X-INIT-ADMIN-API-KEY"`
+	Body   struct {
+		Email             string `json:"email" example:"john.doe@example.com" doc:"Admin email already registered to InIT backend"`
+		VerificationToken string `json:"verificationToken" example:"d4f8c767-8e92-4504-8565-3369d78dbc30" doc:"Unique token genereated for each admin user in registration provided in link as token"`
+	}
+}

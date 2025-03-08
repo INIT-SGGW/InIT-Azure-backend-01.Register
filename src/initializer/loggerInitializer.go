@@ -77,32 +77,6 @@ func New(logger *zap.Logger) func(next http.Handler) http.Handler {
 
 }
 
-func AutorizeRequest(apiKey string, logger *zap.Logger) func(next http.Handler) http.Handler {
-	if apiKey == "" {
-		return func(next http.Handler) http.Handler { return next }
-	}
-
-	return func(next http.Handler) http.Handler {
-		fn := func(w http.ResponseWriter, r *http.Request) {
-			defer logger.Sync()
-
-			apiKeyHeader := "X-ICC-API-KEY"
-			sendedApiKey := r.Header.Get(apiKeyHeader)
-			if sendedApiKey == sendedApiKey {
-				logger.Info("Valid API key")
-				next.ServeHTTP(w, r)
-			} else {
-				logger.Error("Invalid request api key ")
-				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
-				return
-			}
-
-		}
-		return http.HandlerFunc(fn)
-	}
-
-}
-
 func Recovery(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -112,7 +86,7 @@ func Recovery(next http.Handler) http.Handler {
 				fmt.Println(err)
 
 				jsonBody, _ := json.Marshal(map[string]string{
-					"error": "There was an internal server error",
+					"message": "There was an internal server error",
 				})
 
 				w.Header().Set("Content-Type", "application/json")
@@ -131,7 +105,7 @@ func CorsHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		headers := w.Header()
 		headers.Add("Access-Control-Allow-Origin", "https://initcodingchallenge.pl")
-		headers.Add("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, X-ICC-API-KEY, Authorization, Accept, origin, Cache-Control, jwt, Content-Security-Policy")
+		headers.Add("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, X-ICC-API-KEY, Authorization, Accept, origin, Cache-Control, jwt, jwt-init-admin, Content-Security-Policy, X-INIT-ADMIN-API-KEY")
 		headers.Add("Access-Control-Allow-Methods", "GET, POST,PUT,DELETE,OPTIONS")
 		headers.Add("Access-Control-Allow-Credentials", "true")
 		w.Header().Set("Content-Type", "application/json")
