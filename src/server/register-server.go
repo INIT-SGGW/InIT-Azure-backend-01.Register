@@ -83,7 +83,7 @@ func addRoutes(api huma.API, handler handler.RegisterHandler) {
 		sessionCookie, err := huma.ReadCookie(ctx, "jwt")
 		if err != nil {
 			huma.WriteErr(api, ctx, http.StatusUnauthorized,
-				"JWT cookie do not present", fmt.Errorf("Not logged in user"),
+				"JWT cookie is not present", fmt.Errorf("Not logged in user"),
 			)
 			return
 		}
@@ -152,20 +152,20 @@ func addRoutes(api huma.API, handler handler.RegisterHandler) {
 
 func addAdminRoutes(api huma.API, handler handler.AdminHandler, apiKey string) {
 
-	// authMiddleware := func(ctx huma.Context, next func(huma.Context)) {
-	// 	// Read a cookie by name.
-	// 	sessionCookie, err := huma.ReadCookie(ctx, "jwt-init-admin")
-	// 	if err != nil {
-	// 		huma.WriteErr(api, ctx, http.StatusUnauthorized,
-	// 			"jwt-init-admin cookie do not present", fmt.Errorf("Not logged as admin"),
-	// 		)
-	// 		return
-	// 	}
+	authMiddleware := func(ctx huma.Context, next func(huma.Context)) {
+		// Read a cookie by name.
+		sessionCookie, err := huma.ReadCookie(ctx, "jwt-init-admin")
+		if err != nil {
+			huma.WriteErr(api, ctx, http.StatusUnauthorized,
+				"jwt-init-admin cookie is not present", fmt.Errorf("Not logged as admin"),
+			)
+			return
+		}
 
-	// 	ctx = huma.WithValue(ctx, "jwt-init-admin", sessionCookie.Value)
-	// 	ctx.SetHeader("jwt-init-admin", sessionCookie.Value)
-	// 	next(ctx)
-	// }
+		ctx = huma.WithValue(ctx, "jwt-init-admin", sessionCookie.Value)
+		ctx.SetHeader("jwt-init-admin", sessionCookie.Value)
+		next(ctx)
+	}
 
 	apiKeyMiddleware := func(ctx huma.Context, next func(huma.Context)) {
 		// Read a cookie by name.
@@ -214,4 +214,13 @@ func addAdminRoutes(api huma.API, handler handler.AdminHandler, apiKey string) {
 		Description: "Remove JWT token from client",
 		Middlewares: huma.Middlewares{apiKeyMiddleware},
 	}, handler.HandleLogoutAdminRequest)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "get-admin",
+		Method:      http.MethodGet,
+		Path:        "/register/admin/{id}",
+		Summary:     "Get admin by id",
+		Description: "Get admin data from database",
+		Middlewares: huma.Middlewares{apiKeyMiddleware, authMiddleware},
+	}, handler.HandleGetAdminRequest)
 }

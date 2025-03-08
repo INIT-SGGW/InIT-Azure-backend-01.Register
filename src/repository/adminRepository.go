@@ -6,6 +6,7 @@ import (
 	"INIT-SGGW/InIT-Azure-backend-01.Register/model"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
 )
@@ -136,8 +137,44 @@ func (repo MongoRepository) GetAdminByEmail(ctx context.Context, email string) (
 func (repo MongoRepository) GetAdminByID(ctx context.Context, id string) (model.Admin, error) {
 	defer repo.logger.Sync()
 
-	_ = repo.client.Database(repo.database).Collection(ADMINS_COLLECTION_NAME)
+	repo.logger.Debug("In GetAdminByID method")
 
-	return model.Admin{}, nil
+	coll := repo.client.Database(repo.database).Collection(ADMINS_COLLECTION_NAME)
+	queryId, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		repo.logger.Error("Cannot parse id to ObjectId",
+			zap.String("database", repo.database),
+			zap.String("collection", ADMINS_COLLECTION_NAME),
+			zap.String("id", id),
+			zap.Error(err))
+	}
+	repo.logger.Info("Sucesfully parse id to ObjectId")
+
+	filter := bson.D{{Key: "_id", Value: queryId}}
+	var dboAdmin model.Admin
+
+	err = coll.FindOne(ctx, filter).Decode(&dboAdmin)
+	if err == mongo.ErrNilDocument {
+		repo.logger.Error("Cannot find following user in database",
+			zap.String("database", repo.database),
+			zap.String("collection", ADMINS_COLLECTION_NAME),
+			zap.String("id", queryId.String()),
+			zap.Error(err))
+
+		return model.Admin{}, err
+	}
+	if err != nil {
+		repo.logger.Error("Error retreiving user from database",
+			zap.String("database", repo.database),
+			zap.String("collection", ADMINS_COLLECTION_NAME),
+			zap.Error(err))
+		return model.Admin{}, err
+	}
+	repo.logger.Info("Sucesfully retreive admin from database",
+		zap.String("database", repo.database),
+		zap.String("collection", ADMINS_COLLECTION_NAME),
+		zap.String("id", queryId.String()))
+
+	return dboAdmin, err
 
 }

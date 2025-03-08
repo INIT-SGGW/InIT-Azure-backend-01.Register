@@ -91,3 +91,15 @@ type LogoutAdminResponse struct {
 		Message string `json:"message" example:"user sucesfully logout" doc:"Message from backend server"`
 	}
 }
+
+type GetAdminResponse struct {
+	Status int
+
+	Body struct {
+		FirstName       string `json:"firstName" example:"John" doc:"Admin first name"`
+		LastName        string `json:"lastName" example:"Doe" doc:"Admin last name"`
+		DiscordUsername string `json:"discordUsername" example:"JohnDoe" doc:"Username in InIT discord server"`
+		Email           string `json:"email" example:"john.doe@example.com" doc:"Admin email, the confirmation will be send to that adress"`
+		IsVerified      bool   `json:"verified" example:"true" doc:"true if admin has verified email"`
+	}
+}

@@ -137,5 +137,19 @@ func (serv AdminRequestService) AuthenticateAdmin(email, password string, ctx co
 func (serv AdminRequestService) GetAdminById(id string, ctx context.Context) (model.Admin, error) {
 	defer serv.service.logger.Sync()
 
-	return model.Admin{}, nil
+	adminDbo, err := serv.repository.GetAdminByID(ctx, id)
+	if err == mongo.ErrNilDocument {
+		serv.service.logger.Error("Cannot find the admin in database",
+			zap.Error(err))
+		return model.Admin{}, err
+	}
+	if err != nil {
+		serv.service.logger.Error("Error retreiving admin from database",
+			zap.Error(err))
+		return model.Admin{}, err
+	}
+	serv.service.logger.Info("Succesfully get user from database",
+		zap.String("userId", adminDbo.ID.String()))
+
+	return adminDbo, nil
 }

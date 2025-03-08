@@ -171,3 +171,63 @@ func (han AdminHandler) HandleLogoutAdminRequest(ctx context.Context, input *mod
 	return &resp, nil
 
 }
+
+func (han AdminHandler) HandleGetAdminRequest(ctx context.Context, input *model.GetAdminRequest) (*model.GetAdminResponse, error) {
+	defer han.handler.logger.Sync()
+
+	idFromInput := input.Id
+	resp := model.GetAdminResponse{}
+	resp.Status = http.StatusUnauthorized
+	resp.Body.FirstName = "empty"
+	resp.Body.LastName = "empty"
+	resp.Body.Email = "empty"
+	resp.Body.DiscordUsername = "empty"
+	resp.Body.IsVerified = false
+
+	token, err := jwtauth.VerifyToken(han.authToken, input.JwtCookie.Value)
+	if err != nil {
+		han.handler.logger.Error("Error verifying token",
+			zap.Error(err))
+
+		return &resp, err
+	}
+	claims := token.PrivateClaims()
+
+	id, exist := claims["id"]
+	if !exist {
+		han.handler.logger.Error("The id field is not present in the token")
+		return &resp, err
+
+	}
+
+	if id.(string) != idFromInput {
+		han.handler.logger.Error("The id field do not match with the one in request")
+
+		return &resp, err
+	}
+	han.handler.logger.Info("Admin token and id sucesfully verified")
+
+	adminDbo, err := han.adminService.GetAdminById(idFromInput, ctx)
+	if err != nil {
+		han.handler.logger.Error("Error retreiving user from database",
+			zap.Error(err))
+
+		resp.Status = http.StatusInternalServerError
+		return &resp, err
+	}
+	han.handler.logger.Info("Admin sucesfully retreive from database")
+
+	resp.Body.FirstName = adminDbo.FirstName
+	resp.Body.LastName = adminDbo.LastName
+	resp.Body.Email = adminDbo.Email
+	resp.Body.DiscordUsername = adminDbo.DiscordUsername
+	resp.Body.IsVerified = adminDbo.Verified
+
+	han.handler.logger.Info("Admin sucesfully mapped to response",
+		zap.String("userId", adminDbo.ID.String()),
+	)
+
+	resp.Status = http.StatusOK
+
+	return &resp, nil
+}

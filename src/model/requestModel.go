@@ -86,3 +86,9 @@ type LoginAdminRequest struct {
 type LogoutAdminRequest struct {
 	ApiKey string `header:"X-INIT-ADMIN-API-KEY"`
 }
+
+type GetAdminRequest struct {
+	ApiKey    string      `header:"X-INIT-ADMIN-API-KEY"`
+	JwtCookie http.Cookie `cookie:"jwt-init-admin"`
+	Id        string      `path:"id" example:"67c0df2b24397b2e860be392" doc:"requested user id"`
+}
