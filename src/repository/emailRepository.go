@@ -17,9 +17,7 @@ type EmailRepository interface {
 func (repo MongoRepository) GetSingleTemplateByName(templateName string, ctx context.Context) (model.EmailTemplate, error) {
 	defer repo.logger.Sync()
 
-	collectionName := "Email-templates"
-
-	coll := repo.client.Database(repo.database).Collection(collectionName)
+	coll := repo.client.Database(repo.database).Collection(EMAIL_TEMPLATE_COLLECTION_NAME)
 
 	filter := bson.D{{Key: "template_name", Value: templateName}}
 	var templ model.EmailTemplate
@@ -30,7 +28,7 @@ func (repo MongoRepository) GetSingleTemplateByName(templateName string, ctx con
 		repo.logger.Error("Cannot find following template in database",
 			zap.String("templateName", templateName),
 			zap.String("database", repo.database),
-			zap.String("collection", collectionName),
+			zap.String("collection", EMAIL_TEMPLATE_COLLECTION_NAME),
 			zap.Error(err))
 
 		return model.EmailTemplate{}, err
@@ -39,7 +37,7 @@ func (repo MongoRepository) GetSingleTemplateByName(templateName string, ctx con
 		repo.logger.Error("Error retreiving template",
 			zap.String("templateName", templateName),
 			zap.String("database", repo.database),
-			zap.String("collection", collectionName),
+			zap.String("collection", EMAIL_TEMPLATE_COLLECTION_NAME),
 			zap.Error(err))
 		return model.EmailTemplate{}, err
 	}
@@ -47,7 +45,7 @@ func (repo MongoRepository) GetSingleTemplateByName(templateName string, ctx con
 	repo.logger.Info("Sucesfully retreive email template from database",
 		zap.String("templateName", templateName),
 		zap.String("database", repo.database),
-		zap.String("collection", collectionName))
+		zap.String("collection", EMAIL_TEMPLATE_COLLECTION_NAME))
 
 	return templ, err
 
