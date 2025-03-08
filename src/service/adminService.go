@@ -117,7 +117,22 @@ func (serv AdminRequestService) VerifyAdminToken(ctx context.Context, email, ver
 func (serv AdminRequestService) AuthenticateAdmin(email, password string, ctx context.Context) (bool, model.Admin, error) {
 	defer serv.service.logger.Sync()
 
-	return true, model.Admin{}, nil
+	adminDbo, err := serv.repository.GetAdminByEmail(ctx, email)
+	if err == mongo.ErrNilDocument {
+		serv.service.logger.Error("The email is not found in database",
+			zap.Error(err))
+		return false, model.Admin{}, err
+	}
+	if err != nil {
+		serv.service.logger.Error("Error in database retreival",
+			zap.Error(err))
+		return false, model.Admin{}, err
+	}
+	serv.service.logger.Info("Admin sucesfully retreive from database")
+
+	isAuthenticate := serv.service.checkPasswordHash(password, adminDbo.Password)
+
+	return isAuthenticate, adminDbo, err
 }
 func (serv AdminRequestService) GetAdminById(id string, ctx context.Context) (model.Admin, error) {
 	defer serv.service.logger.Sync()

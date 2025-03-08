@@ -196,4 +196,22 @@ func addAdminRoutes(api huma.API, handler handler.AdminHandler, apiKey string) {
 		Description: "Based on provided token and email, verify the admin email",
 		Middlewares: huma.Middlewares{apiKeyMiddleware},
 	}, handler.HandleVerificationAdminRequest)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "login-admin",
+		Method:      http.MethodPost,
+		Path:        "/register/admin/login",
+		Summary:     "Login admin",
+		Description: "Login admin sending JWT cookie to client for further authentication",
+		Middlewares: huma.Middlewares{apiKeyMiddleware},
+	}, handler.HandleLoginAdminRequest)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "logout-admin",
+		Method:      http.MethodPost,
+		Path:        "/register/admin/logout",
+		Summary:     "Logout admin",
+		Description: "Remove JWT token from client",
+		Middlewares: huma.Middlewares{apiKeyMiddleware},
+	}, handler.HandleLogoutAdminRequest)
 }

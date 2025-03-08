@@ -75,3 +75,19 @@ type VerificationAdminResponse struct {
 		Message string `json:"message,omitempty" example:"email and token do not match" doc:"Errors and information in admin verification"`
 	}
 }
+
+type LoginAdminResponse struct {
+	SetCookie http.Cookie `header:"Set-Cookie"`
+	Status    int
+	Body      struct {
+		UserID  string `json:"userId,omitempty" example:"67c0df2b24397b2e860be392" doc:"Unique admin identifier"`
+		Status  string `json:"status" example:"sucesfully log in" doc:"Status of login operation"`
+		Message string `json:"message,omitempty" example:"email and password do not match" doc:"Errors in user authentication"`
+	}
+}
+type LogoutAdminResponse struct {
+	SetCookie http.Cookie `header:"Set-Cookie"`
+	Body      struct {
+		Message string `json:"message" example:"user sucesfully logout" doc:"Message from backend server"`
+	}
+}

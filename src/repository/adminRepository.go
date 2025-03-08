@@ -103,9 +103,34 @@ func (repo MongoRepository) VerifyAdmin(ctx context.Context, email string) error
 func (repo MongoRepository) GetAdminByEmail(ctx context.Context, email string) (model.Admin, error) {
 	defer repo.logger.Sync()
 
-	_ = repo.client.Database(repo.database).Collection(ADMINS_COLLECTION_NAME)
+	repo.logger.Debug("In GetAdminByEmail method")
 
-	return model.Admin{}, nil
+	coll := repo.client.Database(repo.database).Collection(ADMINS_COLLECTION_NAME)
+
+	filter := bson.D{{Key: "email", Value: email}}
+	var dboAdmin model.Admin
+
+	err := coll.FindOne(ctx, filter).Decode(&dboAdmin)
+	if err == mongo.ErrNilDocument {
+		repo.logger.Error("Cannot find following admin in database",
+			zap.String("database", repo.database),
+			zap.String("collection", USER_COLLECTION_NAME),
+			zap.Error(err))
+
+		return model.Admin{}, err
+	}
+	if err != nil {
+		repo.logger.Error("Error retreiving admin from database",
+			zap.String("database", repo.database),
+			zap.String("collection", USER_COLLECTION_NAME),
+			zap.Error(err))
+		return model.Admin{}, err
+	}
+	repo.logger.Info("Sucesfully retreive admin from database",
+		zap.String("database", repo.database),
+		zap.String("collection", USER_COLLECTION_NAME))
+
+	return dboAdmin, err
 
 }
 func (repo MongoRepository) GetAdminByID(ctx context.Context, id string) (model.Admin, error) {

@@ -73,3 +73,16 @@ type VerificationAdminRequest struct {
 		VerificationToken string `json:"verificationToken" example:"d4f8c767-8e92-4504-8565-3369d78dbc30" doc:"Unique token genereated for each admin user in registration provided in link as token"`
 	}
 }
+
+type LoginAdminRequest struct {
+	ApiKey string `header:"X-INIT-ADMIN-API-KEY"`
+
+	Body struct {
+		Email    string `json:"email" example:"john.doe@example.com" doc:"Admin email send to log in"`
+		Password string `json:"password" example:"secretPa$$word!" doc:"Password send for authentication"`
+	}
+}
+
+type LogoutAdminRequest struct {
+	ApiKey string `header:"X-INIT-ADMIN-API-KEY"`
+}

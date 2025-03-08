@@ -101,3 +101,73 @@ func (han AdminHandler) HandleVerificationAdminRequest(ctx context.Context, inpu
 
 	return &resp, nil
 }
+
+func (han AdminHandler) HandleLoginAdminRequest(ctx context.Context, input *model.LoginAdminRequest) (*model.LoginAdminResponse, error) {
+	defer han.handler.logger.Sync()
+
+	han.handler.logger.Debug("In HandleLoginAdminRequest method")
+	resp := model.LoginAdminResponse{}
+
+	isAuthenticate, admin, err := han.adminService.AuthenticateAdmin(input.Body.Email, input.Body.Password, ctx)
+	if err != nil && err != mongo.ErrNilDocument {
+
+		resp.Body.Message = err.Error()
+		resp.Body.Status = "internal error"
+		resp.Status = http.StatusInternalServerError
+		return &resp, err
+	}
+	if !isAuthenticate || err == mongo.ErrNilDocument {
+		resp.Body.Message = "authentication failed"
+		resp.Body.Status = "email and password do not match"
+		resp.Status = http.StatusUnauthorized
+		return &resp, err
+	}
+
+	han.handler.logger.Info("User authenticated creating token")
+
+	claims := map[string]interface{}{"id": admin.ID, "email": input.Body.Email, "privilage": admin.AdminPermissions}
+	_, tokenString, err := han.authToken.Encode(claims)
+	if err != nil {
+		han.handler.logger.Error("Error creating token",
+			zap.Error(err))
+
+		resp.Body.Message = err.Error()
+		resp.Body.Status = "internal error"
+		resp.Status = http.StatusInternalServerError
+		return &resp, err
+	}
+	han.handler.logger.Info("Sucesfully create token with claims")
+
+	resp.SetCookie = http.Cookie{
+		Name:     "jwt-init-admin",
+		Value:    tokenString,
+		MaxAge:   3600,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+		Path:     "/",
+	}
+
+	resp.Body.UserID = admin.ID.String()
+	resp.Body.Status = "sucesfully log in"
+	resp.Status = http.StatusOK
+
+	return &resp, nil
+}
+
+func (han AdminHandler) HandleLogoutAdminRequest(ctx context.Context, input *model.LogoutAdminRequest) (*model.LogoutAdminResponse, error) {
+	defer han.handler.logger.Sync()
+
+	resp := model.LogoutAdminResponse{}
+
+	resp.SetCookie = http.Cookie{
+		Name:   "jwt-init-admin",
+		Value:  "",
+		MaxAge: -1,
+	}
+
+	resp.Body.Message = "user sucesfully logout"
+
+	return &resp, nil
+
+}
