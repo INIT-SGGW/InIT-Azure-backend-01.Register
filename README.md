@@ -2,7 +2,7 @@
 ---
 This repo contains code for backend app of ICC 2025 Register and autorization service.
 
-The API documentation can be view [here](https://01register-test-g4hna7gsdae7fah9.westeurope-01.azurewebsites.net/api/v1/register/docs) 
+The API documentation can be view [here](https://01register-test-g4hna7gsdae7fah9.westeurope-01.azurewebsites.net/register/docs) 
 
 ## Project set up
 
