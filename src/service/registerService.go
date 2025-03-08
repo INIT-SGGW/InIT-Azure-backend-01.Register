@@ -8,8 +8,6 @@ import (
 	"regexp"
 	"time"
 
-	"golang.org/x/crypto/bcrypt"
-
 	"github.com/google/uuid"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -68,7 +66,7 @@ func (serv RegisterService) MapUserRequestToDBO(request model.RegisterUserReques
 		return model.User{}, errors.New("invalid sggw email")
 	}
 
-	hashPass, err := serv.hashPassword(request.Body.Password)
+	hashPass, err := serv.service.hashPassword(request.Body.Password)
 	if err != nil {
 		serv.service.logger.Error("Error Hashing password",
 			zap.Error(err))
@@ -146,7 +144,7 @@ func (serv RegisterService) AuthenticateUser(email, password string, ctx context
 			zap.Error(err))
 		return false, model.User{}, err
 	}
-	isAuthenticate := serv.checkPasswordHash(password, userDbo.Password)
+	isAuthenticate := serv.service.checkPasswordHash(password, userDbo.Password)
 
 	return isAuthenticate, userDbo, err
 
@@ -170,15 +168,6 @@ func (serv RegisterService) GetUserById(id string, ctx context.Context) (model.U
 		zap.String("userId", userDbo.ID.String()))
 
 	return userDbo, nil
-}
-
-func (RegisterService) hashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
-	return string(bytes), err
-}
-func (RegisterService) checkPasswordHash(password, hash string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-	return err == nil
 }
 
 func (serv RegisterService) verifySggwEmail(email string) bool {
