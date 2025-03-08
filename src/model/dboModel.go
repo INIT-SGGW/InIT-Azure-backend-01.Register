@@ -36,3 +36,17 @@ type EmailTemplate struct {
 	Description           string             `bson:"description,omitempty"`
 	RecipientGroups       []string           `bson:"recipient_groups,omitempty"`
 }
+
+type Admin struct {
+	ID                primitive.ObjectID `bson:"_id"`
+	CreatedAt         time.Time          `bson:"created_at"`
+	UpdatedAt         time.Time          `bson:"updated_at"`
+	FirstName         string             `bson:"first_name"`
+	LastName          string             `bson:"last_name"`
+	DiscordUsername   string             `bson:"discord_username"`
+	Password          string             `bson:"password"`
+	Email             string             `bson:"email"`
+	VerificationToken string             `bson:"verification_token"`
+	Verified          bool               `bson:"verified"`
+	AdminPermissions  []string           `bson:"admin_permissions,omitempty"`
+}

@@ -12,6 +12,12 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	USER_COLLECTION_NAME           string = "Users"
+	EMAIL_TEMPLATE_COLLECTION_NAME string = "Email-templates"
+	ADMINS_COLLECTION_NAME         string = "Admins"
+)
+
 type MongoRepository struct {
 	client   *mongo.Client
 	database string
@@ -44,9 +50,8 @@ func (repo MongoRepository) CreateUserInDB(user model.User, ctx context.Context)
 	defer repo.logger.Sync()
 
 	repo.logger.Debug("In CreateUserInDB method")
-	collectionName := "Users"
 
-	coll := repo.client.Database(repo.database).Collection(collectionName)
+	coll := repo.client.Database(repo.database).Collection(USER_COLLECTION_NAME)
 
 	result, err := coll.InsertOne(ctx, user)
 	if mongo.IsDuplicateKeyError(err) {
@@ -62,7 +67,7 @@ func (repo MongoRepository) CreateUserInDB(user model.User, ctx context.Context)
 
 	repo.logger.Info("Sucesfully inserted user into database",
 		zap.String("database", repo.database),
-		zap.String("collection", collectionName),
+		zap.String("collection", USER_COLLECTION_NAME),
 		zap.Any("userId", result.InsertedID))
 
 	return nil
@@ -70,11 +75,10 @@ func (repo MongoRepository) CreateUserInDB(user model.User, ctx context.Context)
 
 func (repo MongoRepository) GetEmailByToken(ctx context.Context, verificationToken string) ([]string, error) {
 	defer repo.logger.Sync()
-	collectionName := "Users"
 
 	repo.logger.Debug("In GetEmailByToken method")
 
-	coll := repo.client.Database(repo.database).Collection(collectionName)
+	coll := repo.client.Database(repo.database).Collection(USER_COLLECTION_NAME)
 
 	filter := bson.D{{Key: "token", Value: verificationToken}}
 	var dboUser model.User
@@ -83,7 +87,7 @@ func (repo MongoRepository) GetEmailByToken(ctx context.Context, verificationTok
 	if err == mongo.ErrNilDocument {
 		repo.logger.Error("Cannot find following token in database",
 			zap.String("database", repo.database),
-			zap.String("collection", collectionName),
+			zap.String("collection", USER_COLLECTION_NAME),
 			zap.Error(err))
 
 		return []string{}, err
@@ -91,7 +95,7 @@ func (repo MongoRepository) GetEmailByToken(ctx context.Context, verificationTok
 	if err != nil {
 		repo.logger.Error("Error retreiving user from database",
 			zap.String("database", repo.database),
-			zap.String("collection", collectionName),
+			zap.String("collection", USER_COLLECTION_NAME),
 			zap.Error(err))
 		return []string{}, err
 	}
@@ -103,17 +107,16 @@ func (repo MongoRepository) GetEmailByToken(ctx context.Context, verificationTok
 func (repo MongoRepository) VerifyUser(ctx context.Context, email string) error {
 	defer repo.logger.Sync()
 
-	collectionName := "Users"
-
 	repo.logger.Debug("In VerifyUser method")
 
-	coll := repo.client.Database(repo.database).Collection(collectionName)
+	coll := repo.client.Database(repo.database).Collection(USER_COLLECTION_NAME)
 
 	filter := bson.D{{Key: "emails", Value: email}}
 	update := bson.D{{Key: "$set", Value: bson.D{{Key: "verified", Value: true}}}}
 	_, err := coll.UpdateOne(ctx, filter, update)
 	if err != nil {
 		repo.logger.Error("Error updating record",
+			zap.String("collectionName", USER_COLLECTION_NAME),
 			zap.Error(err))
 		return err
 	}
@@ -124,11 +127,10 @@ func (repo MongoRepository) VerifyUser(ctx context.Context, email string) error 
 
 func (repo MongoRepository) GetUserByEmail(ctx context.Context, email string) (model.User, error) {
 	defer repo.logger.Sync()
-	collectionName := "Users"
 
 	repo.logger.Debug("In GetUserByEmail method")
 
-	coll := repo.client.Database(repo.database).Collection(collectionName)
+	coll := repo.client.Database(repo.database).Collection(USER_COLLECTION_NAME)
 
 	filter := bson.D{{Key: "emails", Value: email}}
 	var dboUser model.User
@@ -137,7 +139,7 @@ func (repo MongoRepository) GetUserByEmail(ctx context.Context, email string) (m
 	if err == mongo.ErrNilDocument {
 		repo.logger.Error("Cannot find following user in database",
 			zap.String("database", repo.database),
-			zap.String("collection", collectionName),
+			zap.String("collection", USER_COLLECTION_NAME),
 			zap.Error(err))
 
 		return model.User{}, err
@@ -145,13 +147,13 @@ func (repo MongoRepository) GetUserByEmail(ctx context.Context, email string) (m
 	if err != nil {
 		repo.logger.Error("Error retreiving user from database",
 			zap.String("database", repo.database),
-			zap.String("collection", collectionName),
+			zap.String("collection", USER_COLLECTION_NAME),
 			zap.Error(err))
 		return model.User{}, err
 	}
 	repo.logger.Info("Sucesfully retreive user from database",
 		zap.String("database", repo.database),
-		zap.String("collection", collectionName))
+		zap.String("collection", USER_COLLECTION_NAME))
 
 	return dboUser, err
 
@@ -159,16 +161,15 @@ func (repo MongoRepository) GetUserByEmail(ctx context.Context, email string) (m
 
 func (repo MongoRepository) GetUserByID(ctx context.Context, id string) (model.User, error) {
 	defer repo.logger.Sync()
-	collectionName := "Users"
 
 	repo.logger.Debug("In GetUserByID method")
 
-	coll := repo.client.Database(repo.database).Collection(collectionName)
+	coll := repo.client.Database(repo.database).Collection(USER_COLLECTION_NAME)
 	queryId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		repo.logger.Error("Cannot parse id to ObjectId",
 			zap.String("database", repo.database),
-			zap.String("collection", collectionName),
+			zap.String("collection", USER_COLLECTION_NAME),
 			zap.String("id", id),
 			zap.Error(err))
 	}
@@ -180,7 +181,7 @@ func (repo MongoRepository) GetUserByID(ctx context.Context, id string) (model.U
 	if err == mongo.ErrNilDocument {
 		repo.logger.Error("Cannot find following user in database",
 			zap.String("database", repo.database),
-			zap.String("collection", collectionName),
+			zap.String("collection", USER_COLLECTION_NAME),
 			zap.String("id", queryId.String()),
 			zap.Error(err))
 
@@ -189,13 +190,13 @@ func (repo MongoRepository) GetUserByID(ctx context.Context, id string) (model.U
 	if err != nil {
 		repo.logger.Error("Error retreiving user from database",
 			zap.String("database", repo.database),
-			zap.String("collection", collectionName),
+			zap.String("collection", USER_COLLECTION_NAME),
 			zap.Error(err))
 		return model.User{}, err
 	}
 	repo.logger.Info("Sucesfully retreive user from database",
 		zap.String("database", repo.database),
-		zap.String("collection", collectionName))
+		zap.String("collection", USER_COLLECTION_NAME))
 
 	return dboUser, err
 

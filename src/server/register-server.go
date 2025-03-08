@@ -39,20 +39,28 @@ func main() {
 
 	repo := repository.NewRegisterRepository(config.DbConnStr, config.DbName, logger)
 	registerHandler := handler.NewRegisterHandler(logger, authToken, repo, config.SmtpUser, config.SmtpPass, config.SmtpHost, config.SmtpPort, config.SmtpSenderEmail, config.VerificationLinkHost)
+	adminHandler := handler.NewAdminHandler(logger, authToken, repo, config.SmtpUser, config.SmtpPass, config.SmtpHost, config.SmtpPort, config.SmtpSenderEmail, config.VerificationLinkHost)
 
 	r := chi.NewRouter()
-	// r.Use(c)
+
 	r.Use(initializer.CorsHandler)
 	r.Use(initializer.New(logger))
 	r.Use(initializer.Recovery)
-	r.Use(initializer.AutorizeRequest(config.ApiKey, logger))
 	r.Route("/register/user", func(r chi.Router) {
 		r.Use(jwtauth.Verifier(authToken))
 		r.Use(jwtauth.Authenticator)
 	})
 
+	r.Group(func(r chi.Router) {
+		r.Route("/register/admin", func(r chi.Router) {
+			r.Use(jwtauth.Verifier(authToken))
+			r.Use(jwtauth.Authenticator)
+		})
+	})
+
 	api := createHumaApi("KN INIT Website Register API", "1.0.0", r)
 	addRoutes(api, *registerHandler)
+	addAdminRoutes(api, *adminHandler, config.ApiKey)
 
 	http.ListenAndServe(fmt.Sprintf(":%s", config.ListenPort), r)
 
@@ -75,7 +83,7 @@ func addRoutes(api huma.API, handler handler.RegisterHandler) {
 		sessionCookie, err := huma.ReadCookie(ctx, "jwt")
 		if err != nil {
 			huma.WriteErr(api, ctx, http.StatusUnauthorized,
-				"JWT cookie do not present", fmt.Errorf("Not logged in user"),
+				"JWT cookie is not present", fmt.Errorf("Not logged in user"),
 			)
 			return
 		}
@@ -140,4 +148,79 @@ func addRoutes(api huma.API, handler handler.RegisterHandler) {
 	// 	Description: "Update user data by sending new updated form",
 	// 	Middlewares: huma.Middlewares{middleware},
 	// }, handler.HandleUpdateUserRequest)
+}
+
+func addAdminRoutes(api huma.API, handler handler.AdminHandler, apiKey string) {
+
+	authMiddleware := func(ctx huma.Context, next func(huma.Context)) {
+		// Read a cookie by name.
+		sessionCookie, err := huma.ReadCookie(ctx, "jwt-init-admin")
+		if err != nil {
+			huma.WriteErr(api, ctx, http.StatusUnauthorized,
+				"jwt-init-admin cookie is not present", fmt.Errorf("Not logged as admin"),
+			)
+			return
+		}
+
+		ctx = huma.WithValue(ctx, "jwt-init-admin", sessionCookie.Value)
+		ctx.SetHeader("jwt-init-admin", sessionCookie.Value)
+		next(ctx)
+	}
+
+	apiKeyMiddleware := func(ctx huma.Context, next func(huma.Context)) {
+		// Read a cookie by name.
+		providedKey := ctx.Header("X-INIT-ADMIN-API-KEY")
+		if providedKey != apiKey {
+			huma.WriteErr(api, ctx, http.StatusUnauthorized,
+				"the provided api key is incorrect", fmt.Errorf("Not logged as admin"),
+			)
+			return
+		}
+		next(ctx)
+	}
+
+	huma.Register(api, huma.Operation{
+		OperationID: "register-admin",
+		Method:      http.MethodPost,
+		Path:        "/register/admin",
+		Summary:     "Register admin",
+		Description: "Register admin and send confirmation email to provided adress with unique token for account verification",
+		Middlewares: huma.Middlewares{apiKeyMiddleware},
+	}, handler.HandleRegisterAdminRequest)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "verify-admin",
+		Method:      http.MethodPost,
+		Path:        "/register/admin/verifiy",
+		Summary:     "Verify admin email",
+		Description: "Based on provided token and email, verify the admin email",
+		Middlewares: huma.Middlewares{apiKeyMiddleware},
+	}, handler.HandleVerificationAdminRequest)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "login-admin",
+		Method:      http.MethodPost,
+		Path:        "/register/admin/login",
+		Summary:     "Login admin",
+		Description: "Login admin sending JWT cookie to client for further authentication",
+		Middlewares: huma.Middlewares{apiKeyMiddleware},
+	}, handler.HandleLoginAdminRequest)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "logout-admin",
+		Method:      http.MethodPost,
+		Path:        "/register/admin/logout",
+		Summary:     "Logout admin",
+		Description: "Remove JWT token from client",
+		Middlewares: huma.Middlewares{apiKeyMiddleware},
+	}, handler.HandleLogoutAdminRequest)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "get-admin",
+		Method:      http.MethodGet,
+		Path:        "/register/admin/{id}",
+		Summary:     "Get admin by id",
+		Description: "Get admin data from database",
+		Middlewares: huma.Middlewares{apiKeyMiddleware, authMiddleware},
+	}, handler.HandleGetAdminRequest)
 }
