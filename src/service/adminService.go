@@ -24,7 +24,9 @@ type AdminService interface {
 	MapAdminRequestToDBO(request model.RegisterAdminRequest) (model.Admin, error)
 	VerifyAdminToken(ctx context.Context, email, verificationToken string) error
 	AuthenticateAdmin(email, password string, ctx context.Context) (bool, model.Admin, error)
+	UpdateAdminInDB(ctx context.Context, adminDbo model.Admin) error
 	GetAdminById(id string, ctx context.Context) (model.Admin, error)
+	MapAdminVerifyRequestToDBO(request model.VerificationAdminRequest) (model.Admin, error)
 }
 
 func NewAdminService(logger *zap.Logger, repository repository.AdminRepository) AdminRequestService {
@@ -59,7 +61,7 @@ func (serv AdminRequestService) CreateNewAdmin(ctx context.Context, dboAdmin mod
 func (serv AdminRequestService) MapAdminRequestToDBO(request model.RegisterAdminRequest) (model.Admin, error) {
 	defer serv.service.logger.Sync()
 
-	hashPasswored, err := serv.service.hashPassword(request.Body.Password)
+	hashPasswored, err := serv.service.hashPassword(uuid.NewString())
 	if err != nil {
 		serv.service.logger.Error("Error Hashing password",
 			zap.Error(err))
@@ -72,9 +74,6 @@ func (serv AdminRequestService) MapAdminRequestToDBO(request model.RegisterAdmin
 		ID:                primitive.NewObjectID(),
 		CreatedAt:         time.Now(),
 		UpdatedAt:         time.Now(),
-		FirstName:         request.Body.FirstName,
-		LastName:          request.Body.LastName,
-		DiscordUsername:   request.Body.DiscordUsername,
 		Email:             request.Body.Email,
 		Password:          hashPasswored,
 		VerificationToken: uniqueVerificationToken,
@@ -85,10 +84,34 @@ func (serv AdminRequestService) MapAdminRequestToDBO(request model.RegisterAdmin
 	return admin, nil
 }
 
+func (serv AdminRequestService) MapAdminVerifyRequestToDBO(request model.VerificationAdminRequest) (model.Admin, error) {
+	defer serv.service.logger.Sync()
+
+	hashPassword, err := serv.service.hashPassword(request.Body.Password)
+	if err != nil {
+		serv.service.logger.Error("Error Hashing password",
+			zap.Error(err))
+		return model.Admin{}, err
+	}
+
+	admin := model.Admin{
+		UpdatedAt:         time.Now(),
+		Email:             request.Body.Email,
+		Password:          hashPassword,
+		VerificationToken: request.Body.VerificationToken,
+		FirstName:         request.Body.FirstName,
+		LastName:          request.Body.LastName,
+		DiscordUsername:   request.Body.DiscordUsername,
+		Verified:          true,
+	}
+
+	return admin, nil
+}
+
 func (serv AdminRequestService) VerifyAdminToken(ctx context.Context, email, verificationToken string) error {
 	defer serv.service.logger.Sync()
 
-	dbEmail, err := serv.repository.GetAdminEmailByToken(ctx, verificationToken)
+	adminDbo, err := serv.repository.GetAdminByToken(ctx, verificationToken)
 	if err == mongo.ErrNilDocument {
 		serv.service.logger.Error("The token is not found in database",
 			zap.Error(err))
@@ -99,21 +122,30 @@ func (serv AdminRequestService) VerifyAdminToken(ctx context.Context, email, ver
 			zap.Error(err))
 		return err
 	}
-	if email != dbEmail {
+	if email != adminDbo.Email {
 		serv.service.logger.Error("None of emails match the user data in the database")
 		return mongo.ErrNilDocument
 	}
 
-	err = serv.repository.VerifyAdmin(ctx, email)
+	serv.service.logger.Info("Succesfully verified admin email")
+
+	return nil
+}
+
+func (serv AdminRequestService) UpdateAdminInDB(ctx context.Context, adminDbo model.Admin) error {
+	defer serv.service.logger.Sync()
+
+	err := serv.repository.UpdateVerifyAdminData(ctx, adminDbo)
 	if err != nil {
 		serv.service.logger.Error("Error verifying admin",
 			zap.Error(err))
 		return err
 	}
-	serv.service.logger.Info("Succesfully verified admin email")
 
 	return nil
+
 }
+
 func (serv AdminRequestService) AuthenticateAdmin(email, password string, ctx context.Context) (bool, model.Admin, error) {
 	defer serv.service.logger.Sync()
 

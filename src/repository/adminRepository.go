@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"INIT-SGGW/InIT-Azure-backend-01.Register/model"
 
@@ -13,8 +14,8 @@ import (
 
 type AdminRepository interface {
 	CreateAdminInDB(model.Admin, context.Context) error
-	GetAdminEmailByToken(ctx context.Context, verificationToken string) (string, error)
-	VerifyAdmin(ctx context.Context, email string) error
+	GetAdminByToken(ctx context.Context, verificationToken string) (model.Admin, error)
+	UpdateVerifyAdminData(ctx context.Context, adminDbo model.Admin) error
 	GetAdminByEmail(ctx context.Context, email string) (model.Admin, error)
 	GetAdminByID(ctx context.Context, id string) (model.Admin, error)
 }
@@ -47,10 +48,10 @@ func (repo MongoRepository) CreateAdminInDB(admin model.Admin, ctx context.Conte
 
 }
 
-func (repo MongoRepository) GetAdminEmailByToken(ctx context.Context, verificationToken string) (string, error) {
+func (repo MongoRepository) GetAdminByToken(ctx context.Context, verificationToken string) (model.Admin, error) {
 	defer repo.logger.Sync()
 
-	repo.logger.Debug("In GetAdminEmailByToken method")
+	repo.logger.Debug("In GetAdminByToken method")
 
 	coll := repo.client.Database(repo.database).Collection(ADMINS_COLLECTION_NAME)
 
@@ -64,38 +65,53 @@ func (repo MongoRepository) GetAdminEmailByToken(ctx context.Context, verificati
 			zap.String("collection", USER_COLLECTION_NAME),
 			zap.Error(err))
 
-		return "", err
+		return model.Admin{}, err
 	}
 	if err != nil {
 		repo.logger.Error("Error retreiving user from database",
 			zap.String("database", repo.database),
 			zap.String("collection", USER_COLLECTION_NAME),
 			zap.Error(err))
-		return "", err
+		return model.Admin{}, err
 	}
 	repo.logger.Info("Sucesfully retreive admin from database",
 		zap.String("collection", ADMINS_COLLECTION_NAME),
 		zap.String("admin", dboAdmin.DiscordUsername))
 
-	return dboAdmin.Email, err
+	return dboAdmin, err
 }
 
-func (repo MongoRepository) VerifyAdmin(ctx context.Context, email string) error {
+func (repo MongoRepository) UpdateVerifyAdminData(ctx context.Context, adminDbo model.Admin) error {
 	defer repo.logger.Sync()
 
 	coll := repo.client.Database(repo.database).Collection(ADMINS_COLLECTION_NAME)
 
-	filter := bson.D{{Key: "email", Value: email}}
-	update := bson.D{{Key: "$set", Value: bson.D{{Key: "verified", Value: true}}}}
+	repo.logger.Info("Sucesfully verified admin",
+		zap.String("collection", ADMINS_COLLECTION_NAME),
+		zap.String("adminUsername", adminDbo.DiscordUsername),
+		zap.String("FirstName", adminDbo.FirstName),
+		zap.String("LastName", adminDbo.LastName))
+
+	filter := bson.D{{Key: "email", Value: adminDbo.Email}}
+	update := bson.D{{Key: "$set", Value: bson.D{
+		{Key: "verified", Value: true},
+		{Key: "updated_at", Value: time.Now()},
+		{Key: "first_name", Value: adminDbo.FirstName},
+		{Key: "last_name", Value: adminDbo.LastName},
+		{Key: "discord_username", Value: adminDbo.DiscordUsername},
+		{Key: "password", Value: adminDbo.Password}}}} // Password is already hashed
+
 	_, err := coll.UpdateOne(ctx, filter, update)
 	if err != nil {
 		repo.logger.Error("Error updating record",
 			zap.String("collectionName", ADMINS_COLLECTION_NAME),
+			zap.String("adminusername", adminDbo.DiscordUsername),
 			zap.Error(err))
 		return err
 	}
 	repo.logger.Info("Sucesfully verified admin",
-		zap.String("collection", ADMINS_COLLECTION_NAME))
+		zap.String("collection", ADMINS_COLLECTION_NAME),
+		zap.String("adminUsername", adminDbo.DiscordUsername))
 
 	return nil
 
