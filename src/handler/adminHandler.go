@@ -37,6 +37,19 @@ func (han AdminHandler) HandleRegisterAdminRequest(ctx context.Context, input *m
 	han.handler.logger.Debug("In HandleRegisterAdminRequest method")
 
 	resp := model.RegisterAdminResponse{}
+
+	_, err := jwtauth.VerifyToken(han.authToken, input.JwtCookie.Value)
+	if err != nil {
+		han.handler.logger.Error("Error verifying token",
+			zap.Error(err))
+
+		resp.Body.Message = "Admin is not logged in"
+		resp.Body.Status = "User not created"
+		resp.Status = http.StatusUnauthorized
+
+		return &resp, err
+	}
+
 	adminDbo, err := han.adminService.MapAdminRequestToDBO(*input)
 	if err != nil {
 		resp.Body.Message = err.Error()
@@ -90,6 +103,28 @@ func (han AdminHandler) HandleVerificationAdminRequest(ctx context.Context, inpu
 		return &resp, err
 	}
 	if err != nil {
+		resp.Body.Message = err.Error()
+		resp.Body.Status = "internal error"
+		resp.Status = http.StatusInternalServerError
+		return &resp, err
+	}
+
+	adminDbo, err := han.adminService.MapAdminVerifyRequestToDBO(*input)
+	if err != nil {
+		han.handler.logger.Error("Error when mapping admin user data",
+			zap.Error(err))
+
+		resp.Body.Message = err.Error()
+		resp.Body.Status = "internal error"
+		resp.Status = http.StatusInternalServerError
+		return &resp, err
+	}
+
+	err = han.adminService.UpdateAdminInDB(ctx, adminDbo)
+	if err != nil {
+		han.handler.logger.Error("Error when updating the admin user data",
+			zap.Error(err))
+
 		resp.Body.Message = err.Error()
 		resp.Body.Status = "internal error"
 		resp.Status = http.StatusInternalServerError

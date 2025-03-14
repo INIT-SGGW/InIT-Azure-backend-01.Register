@@ -185,7 +185,7 @@ func addAdminRoutes(api huma.API, handler handler.AdminHandler, apiKey string) {
 		Path:        "/register/admin",
 		Summary:     "Register admin",
 		Description: "Register admin and send confirmation email to provided adress with unique token for account verification",
-		Middlewares: huma.Middlewares{apiKeyMiddleware},
+		Middlewares: huma.Middlewares{apiKeyMiddleware, authMiddleware},
 	}, handler.HandleRegisterAdminRequest)
 
 	huma.Register(api, huma.Operation{
@@ -193,7 +193,7 @@ func addAdminRoutes(api huma.API, handler handler.AdminHandler, apiKey string) {
 		Method:      http.MethodPost,
 		Path:        "/register/admin/verifiy",
 		Summary:     "Verify admin email",
-		Description: "Based on provided token and email, verify the admin email",
+		Description: "Based on provided token and email, verify the admin email and update admin data",
 		Middlewares: huma.Middlewares{apiKeyMiddleware},
 	}, handler.HandleVerificationAdminRequest)
 

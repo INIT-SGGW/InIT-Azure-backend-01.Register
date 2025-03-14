@@ -158,7 +158,7 @@ func (srv EmailService) fillTemplate(emailTmpl model.EmailTemplate, templModel m
 func (srv EmailService) SendAdminVerificationEmail(ctx context.Context, admin model.Admin) error {
 	defer srv.service.logger.Sync()
 
-	templateName := "icc_account_verification"
+	templateName := "admin_verification"
 
 	emailTmpl, err := srv.repository.GetSingleTemplateByName(templateName, ctx)
 	if err != nil {
