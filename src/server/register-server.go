@@ -43,7 +43,9 @@ func main() {
 
 	r := chi.NewRouter()
 
-	r.Use(initializer.CorsHandler)
+	if config.Env == "DEV" {
+		r.Use(initializer.CorsHandler)
+	}
 	r.Use(initializer.New(logger))
 	r.Use(initializer.Recovery)
 	r.Route("/register/user", func(r chi.Router) {
@@ -170,6 +172,7 @@ func addAdminRoutes(api huma.API, handler handler.AdminHandler, apiKey string) {
 	apiKeyMiddleware := func(ctx huma.Context, next func(huma.Context)) {
 		// Read a cookie by name.
 		providedKey := ctx.Header("X-INIT-ADMIN-API-KEY")
+		print(providedKey + " " + apiKey)
 		if providedKey != apiKey {
 			huma.WriteErr(api, ctx, http.StatusUnauthorized,
 				"the provided api key is incorrect", fmt.Errorf("Not logged as admin"),

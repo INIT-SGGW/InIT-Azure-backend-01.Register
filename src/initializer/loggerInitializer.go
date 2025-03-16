@@ -101,22 +101,32 @@ func Recovery(next http.Handler) http.Handler {
 	})
 }
 
+var allowedOrigins = map[string]bool{
+	"http://localhost:3001": true,
+	"http://localhost:3000": true,
+}
+
+// CORS middleware
 func CorsHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		headers := w.Header()
-		headers.Add("Access-Control-Allow-Origin", "https://initcodingchallenge.pl")
-		headers.Add("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, X-ICC-API-KEY, Authorization, Accept, origin, Cache-Control, jwt, jwt-init-admin, Content-Security-Policy, X-INIT-ADMIN-API-KEY")
-		headers.Add("Access-Control-Allow-Methods", "GET, POST,PUT,DELETE,OPTIONS")
-		headers.Add("Access-Control-Allow-Credentials", "true")
-		w.Header().Set("Content-Type", "application/json")
+		origin := r.Header.Get("Origin")
 
-		if r.Method == "OPTIONS" {
-
-			w.WriteHeader(204)
-
-		} else {
-			next.ServeHTTP(w, r)
+		// Check if origin is in the allowed list
+		if allowedOrigins[origin] {
+			w.Header().Set("Access-Control-Allow-Origin", origin) // Set allowed origin dynamically
 		}
 
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, X-ICC-API-KEY, Authorization, Accept, origin, Cache-Control, jwt, jwt-init-admin, Content-Security-Policy, X-INIT-ADMIN-API-KEY")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+		w.Header().Set("Content-Type", "application/json")
+
+		// Handle preflight requests
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		next.ServeHTTP(w, r)
 	})
 }
