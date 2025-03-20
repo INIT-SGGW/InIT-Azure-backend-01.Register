@@ -219,7 +219,7 @@ func (srv EmailService) SendAdminVerificationEmail(ctx context.Context, admin mo
 			zap.Error(err))
 		return err
 	}
-	linkUrl.Path += "/register/admin/email/verification"
+	linkUrl.Path += "/admin/admin/verification"
 	params := url.Values{}
 
 	params.Add("email", admin.Email)
