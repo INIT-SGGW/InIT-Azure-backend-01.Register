@@ -196,9 +196,13 @@ func (han AdminHandler) HandleLogoutAdminRequest(ctx context.Context, input *mod
 	resp := model.LogoutAdminResponse{}
 
 	resp.SetCookie = http.Cookie{
-		Name:   "jwt-init-admin",
-		Value:  "",
-		MaxAge: -1,
+		Name:     "jwt-init-admin",
+		Value:    "",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+		Path:     "/",
 	}
 
 	resp.Body.Message = "user sucesfully logout"

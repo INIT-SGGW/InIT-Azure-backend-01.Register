@@ -157,9 +157,13 @@ func (han RegisterHandler) HandleLogoutRequest(ctx context.Context, input *model
 	resp := model.LogoutResponse{}
 
 	resp.SetCookie = http.Cookie{
-		Name:   "jwt",
-		Value:  "",
-		MaxAge: -1,
+		Name:     "jwt",
+		Value:    "",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+		Path:     "/",
 	}
 
 	resp.Body.Message = "user sucesfully logout"
