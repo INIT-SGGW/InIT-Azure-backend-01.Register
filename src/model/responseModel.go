@@ -59,6 +59,14 @@ type GetUserResponse struct {
 	}
 }
 
+type ResendEmailResponse struct {
+	Status int
+	Body   struct {
+		Status  string `json:"status" example:"resend" doc:"Status of resending the email"`
+		Message string `json:"message,omitempty" example:"user for the email address not found" doc:"Errors in resending email"`
+	}
+}
+
 // Admin endpoints responses
 type RegisterAdminResponse struct {
 	Status int

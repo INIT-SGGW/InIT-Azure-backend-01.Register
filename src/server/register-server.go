@@ -24,14 +24,6 @@ func main() {
 	logger := initializer.CreateLogger(config.LogPath)
 	defer logger.Sync()
 
-	// c := cors.Handler(cors.Options{
-	// 	AllowedOrigins:   []string{"https://initcodingchallenge.pl"},
-	// 	AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-	// 	AllowedHeaders:   []string{"Content-Type", "Content-Length", "Accept-Encoding", "X-CSRF-Token", "X-ICC-API-KEY", "Authorization", "Accept", "origin", "Cache-Control", "jwt", "Content-Security-Policy"},
-	// 	AllowCredentials: true,
-	// 	MaxAge:           300,
-	// })
-
 	logger.Info("Starting service",
 		zap.String("Environment", config.Env))
 
@@ -140,14 +132,13 @@ func addRoutes(api huma.API, handler handler.RegisterHandler) {
 		Middlewares: huma.Middlewares{middleware},
 	}, handler.HandleGetUserRequest)
 
-	// huma.Register(api, huma.Operation{
-	// 	OperationID: "update-user",
-	// 	Method:      http.MethodPut,
-	// 	Path:        "/api/v1/register/user/update/{id}",
-	// 	Summary:     "Update user by id",
-	// 	Description: "Update user data by sending new updated form",
-	// 	Middlewares: huma.Middlewares{middleware},
-	// }, handler.HandleUpdateUserRequest)
+	huma.Register(api, huma.Operation{
+		OperationID: "resend-user-verification",
+		Method:      http.MethodPost,
+		Path:        "/register/verify/resend",
+		Summary:     "Resend verification email",
+		Description: "If user exist in the database the verification email is resend to the provided adress",
+	}, handler.HandleResendEmailRequest)
 }
 
 func addAdminRoutes(api huma.API, handler handler.AdminHandler, apiKey string) {

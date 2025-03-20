@@ -53,6 +53,12 @@ type UpdateUserRequest struct {
 	}
 }
 
+type ResendEmailRequest struct {
+	Body struct {
+		Email string `json:"email" example:"john.doe@example.com" doc:"User email, the confirmation will be resend to that adress if already exist in database"`
+	}
+}
+
 // Admin Endpoints
 
 type RegisterAdminRequest struct {

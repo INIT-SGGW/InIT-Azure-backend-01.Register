@@ -84,7 +84,7 @@ func (repo MongoRepository) GetEmailByToken(ctx context.Context, verificationTok
 	var dboUser model.User
 
 	err := coll.FindOne(ctx, filter).Decode(&dboUser)
-	if err == mongo.ErrNilDocument {
+	if err == mongo.ErrNoDocuments {
 		repo.logger.Error("Cannot find following token in database",
 			zap.String("database", repo.database),
 			zap.String("collection", USER_COLLECTION_NAME),
@@ -136,7 +136,7 @@ func (repo MongoRepository) GetUserByEmail(ctx context.Context, email string) (m
 	var dboUser model.User
 
 	err := coll.FindOne(ctx, filter).Decode(&dboUser)
-	if err == mongo.ErrNilDocument {
+	if err == mongo.ErrNoDocuments {
 		repo.logger.Error("Cannot find following user in database",
 			zap.String("database", repo.database),
 			zap.String("collection", USER_COLLECTION_NAME),
@@ -178,7 +178,7 @@ func (repo MongoRepository) GetUserByID(ctx context.Context, id string) (model.U
 	var dboUser model.User
 
 	err = coll.FindOne(ctx, filter).Decode(&dboUser)
-	if err == mongo.ErrNilDocument {
+	if err == mongo.ErrNoDocuments {
 		repo.logger.Error("Cannot find following user in database",
 			zap.String("database", repo.database),
 			zap.String("collection", USER_COLLECTION_NAME),
