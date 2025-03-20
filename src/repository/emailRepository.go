@@ -12,6 +12,7 @@ import (
 
 type EmailRepository interface {
 	GetSingleTemplateByName(templateName string, ctx context.Context) (model.EmailTemplate, error)
+	GetUserByEmail(ctx context.Context, email string) (model.User, error)
 }
 
 func (repo MongoRepository) GetSingleTemplateByName(templateName string, ctx context.Context) (model.EmailTemplate, error) {
@@ -24,7 +25,7 @@ func (repo MongoRepository) GetSingleTemplateByName(templateName string, ctx con
 
 	err := coll.FindOne(ctx, filter).Decode(&templ)
 
-	if err == mongo.ErrNilDocument {
+	if err == mongo.ErrNoDocuments {
 		repo.logger.Error("Cannot find following template in database",
 			zap.String("templateName", templateName),
 			zap.String("database", repo.database),

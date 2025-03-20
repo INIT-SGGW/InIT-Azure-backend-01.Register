@@ -10,6 +10,8 @@ import (
 	"net/url"
 	"strconv"
 
+	"go.mongodb.org/mongo-driver/mongo"
+
 	"go.uber.org/zap"
 	gomail "gopkg.in/mail.v2"
 )
@@ -28,6 +30,7 @@ type EmailService struct {
 type EmailTemplateService interface {
 	SendUserVerificationEmail(ctx context.Context, user model.User) error
 	SendAdminVerificationEmail(ctx context.Context, admin model.Admin) error
+	ResendVerificationEmail(ctx context.Context, email string) error
 }
 
 func NewEmailService(logger *zap.Logger, user, password, emailHost, emailPort, emailSender, verificationLinkHost string, repository repository.EmailRepository) *EmailService {
@@ -102,6 +105,48 @@ func (srv EmailService) SendUserVerificationEmail(ctx context.Context, user mode
 		zap.String("host", srv.emailHost))
 
 	return err
+}
+
+func (srv EmailService) ResendVerificationEmail(ctx context.Context, email string) error {
+	defer srv.service.logger.Sync()
+
+	srv.service.logger.Debug("In method ResendVerificationEmail")
+
+	userDbo, err := srv.repository.GetUserByEmail(ctx, email)
+	if err == mongo.ErrNoDocuments {
+		srv.service.logger.Error("The user email is not in the database",
+			zap.String("email", email),
+			zap.Error(err))
+
+		return err
+	}
+	if err != nil {
+		srv.service.logger.Error("Error in retreiving user from database",
+			zap.String("email", email),
+			zap.Error(err))
+
+		return err
+	}
+
+	srv.service.logger.Info("Sucesfully retreive the user form database",
+		zap.String("email", userDbo.Emails[0]),
+		zap.String("userId", userDbo.ID.String()))
+
+	err = srv.SendUserVerificationEmail(ctx, userDbo)
+	if err != nil {
+		srv.service.logger.Error("Error sending email",
+			zap.String("email", email),
+			zap.String("host", srv.emailHost),
+			zap.Error(err))
+		return err
+	}
+
+	srv.service.logger.Info("Sucesfully resend  user verification email",
+		zap.String("email", userDbo.Emails[0]),
+		zap.String("userId", userDbo.ID.String()))
+
+	return err
+
 }
 
 func (srv EmailService) fillTemplate(emailTmpl model.EmailTemplate, templModel model.UserVerificationEmailTemplateModel) (*gomail.Message, error) {

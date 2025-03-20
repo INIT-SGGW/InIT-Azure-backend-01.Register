@@ -43,7 +43,7 @@ func (han RegisterHandler) HandleRegisterUserRequest(ctx context.Context, input 
 		resp.Body.Error = err.Error()
 		resp.Body.Status = "Error in mapping to user to dboUser "
 		resp.Status = http.StatusBadRequest
-		return &resp, err
+		return &resp, nil
 	}
 
 	err = han.registerService.CreateNewUser(ctx, userDbo)
@@ -53,20 +53,20 @@ func (han RegisterHandler) HandleRegisterUserRequest(ctx context.Context, input 
 		resp.Body.Error = "duplicate user"
 		resp.Body.Status = "User already exist"
 		resp.Status = http.StatusBadRequest
-		return &resp, err
+		return &resp, nil
 	}
 	if err != nil {
 		resp.Body.Error = err.Error()
 		resp.Body.Status = "User not created"
 		resp.Status = http.StatusInternalServerError
-		return &resp, err
+		return &resp, nil
 	}
 	err = han.emailService.SendUserVerificationEmail(ctx, userDbo)
 	if err != nil {
 		resp.Body.Error = err.Error()
 		resp.Body.Status = "Confirmation email not send"
 		resp.Status = http.StatusInternalServerError
-		return &resp, err
+		return &resp, nil
 	}
 
 	resp.Body.Status = "created"
@@ -83,17 +83,17 @@ func (han RegisterHandler) HandleVerificationUserRequest(ctx context.Context, in
 	resp := model.VerificationUserResponse{}
 
 	err := han.registerService.VerifyEmailByToken(ctx, input.Body.Email, input.Body.VerificationToken)
-	if err == mongo.ErrNilDocument {
+	if err == mongo.ErrNoDocuments {
 		resp.Body.Error = err.Error()
 		resp.Body.Status = "mail and token do not match"
 		resp.Status = http.StatusUnauthorized
-		return &resp, err
+		return &resp, nil
 	}
 	if err != nil {
 		resp.Body.Error = err.Error()
 		resp.Body.Status = "internal error"
 		resp.Status = http.StatusInternalServerError
-		return &resp, err
+		return &resp, nil
 	}
 
 	resp.Body.Status = "verified"
@@ -114,13 +114,13 @@ func (han RegisterHandler) HandleLoginUserRequest(ctx context.Context, input *mo
 		resp.Body.Error = err.Error()
 		resp.Body.Status = "internal error"
 		resp.Status = http.StatusInternalServerError
-		return &resp, err
+		return &resp, nil
 	}
 	if !isAuthenticate {
 		resp.Body.Error = "authentication failed"
 		resp.Body.Status = "email and password do not match"
 		resp.Status = http.StatusUnauthorized
-		return &resp, err
+		return &resp, nil
 	}
 
 	claims := map[string]interface{}{"id": user.ID, "email": input.Body.Email}
@@ -132,7 +132,7 @@ func (han RegisterHandler) HandleLoginUserRequest(ctx context.Context, input *mo
 		resp.Body.Error = err.Error()
 		resp.Body.Status = "internal error"
 		resp.Status = http.StatusInternalServerError
-		return &resp, err
+		return &resp, nil
 	}
 	resp.SetCookie = http.Cookie{
 		Name:     "jwt",
@@ -154,6 +154,8 @@ func (han RegisterHandler) HandleLoginUserRequest(ctx context.Context, input *mo
 func (han RegisterHandler) HandleLogoutRequest(ctx context.Context, input *model.LogoutUserRequest) (*model.LogoutResponse, error) {
 	defer han.handler.logger.Sync()
 
+	han.handler.logger.Debug("In HandleLogoutRequest method")
+
 	resp := model.LogoutResponse{}
 
 	resp.SetCookie = http.Cookie{
@@ -174,6 +176,8 @@ func (han RegisterHandler) HandleLogoutRequest(ctx context.Context, input *model
 func (han RegisterHandler) HandleGetUserRequest(ctx context.Context, input *model.GetUserRequest) (*model.GetUserResponse, error) {
 	defer han.handler.logger.Sync()
 
+	han.handler.logger.Debug("In HandleGetUserRequest method")
+
 	idFromInput := input.Id
 	resp := model.GetUserResponse{}
 	resp.Status = http.StatusUnauthorized
@@ -190,21 +194,21 @@ func (han RegisterHandler) HandleGetUserRequest(ctx context.Context, input *mode
 		han.handler.logger.Error("Error verifying token",
 			zap.Error(err))
 
-		return &resp, err
+		return &resp, nil
 	}
 	claims := token.PrivateClaims()
 
 	id, exist := claims["id"]
 	if !exist {
 		han.handler.logger.Error("The id field is not present in the token")
-		return &resp, err
+		return &resp, nil
 
 	}
 
 	if id.(string) != idFromInput {
 		han.handler.logger.Error("The id field do not match with the one in request")
 
-		return &resp, err
+		return &resp, nil
 	}
 	han.handler.logger.Info("User token and id sucesfully verified")
 
@@ -214,7 +218,7 @@ func (han RegisterHandler) HandleGetUserRequest(ctx context.Context, input *mode
 			zap.Error(err))
 
 		resp.Status = http.StatusInternalServerError
-		return &resp, err
+		return &resp, nil
 	}
 	han.handler.logger.Info("User sucesfully retreive from database")
 
@@ -234,6 +238,45 @@ func (han RegisterHandler) HandleGetUserRequest(ctx context.Context, input *mode
 	)
 
 	resp.Status = http.StatusOK
+
+	return &resp, nil
+}
+
+func (han RegisterHandler) HandleResendEmailRequest(ctx context.Context, input *model.ResendEmailRequest) (*model.ResendEmailResponse, error) {
+	defer han.handler.logger.Sync()
+
+	han.handler.logger.Debug("In HandleResendEmailRequest method")
+
+	resp := model.ResendEmailResponse{}
+	err := han.emailService.ResendVerificationEmail(ctx, input.Body.Email)
+	if err == mongo.ErrNoDocuments {
+		han.handler.logger.Error("Cannot find user in database",
+			zap.String("email", input.Body.Email),
+			zap.Error(err))
+
+		resp.Body.Status = "user cannot be found"
+		resp.Body.Message = "user for the email address not found"
+		resp.Status = http.StatusBadRequest
+
+		return &resp, nil
+	}
+	if err != nil {
+		han.handler.logger.Error("Error resending email",
+			zap.String("email", input.Body.Email),
+			zap.Error(err))
+
+		resp.Body.Status = "resending failed"
+		resp.Body.Message = "internal error in resending email"
+		resp.Status = http.StatusInternalServerError
+
+		return &resp, nil
+	}
+
+	han.handler.logger.Info("Sucesfully resend verification email",
+		zap.String("recipient", input.Body.Email))
+
+	resp.Status = http.StatusOK
+	resp.Body.Status = "resend"
 
 	return &resp, nil
 }
