@@ -36,6 +36,7 @@ type UserVerificationRequest struct {
 
 type LoginUserRequest struct {
 	Body struct {
+		Service  string `json:"service" example:"ha" doc:"Name of a service, where user is trying to log in"`
 		Email    string `json:"email" example:"john.doe@example.com" doc:"User email send to log in"`
 		Password string `json:"password" example:"secretPa$$word!" doc:"Password send for authentication"`
 	}

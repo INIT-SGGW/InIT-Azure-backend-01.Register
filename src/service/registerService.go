@@ -25,7 +25,7 @@ type UserService interface {
 	CreateNewUser(ctx context.Context, dboUser model.User) error
 	MapUserRequestToDBO(request model.RegisterUserRequest) (model.User, error)
 	VerifyEmailByToken(ctx context.Context, email, verificationToken string) error
-	AuthenticateUser(email, password string, ctx context.Context) (bool, model.User, error)
+	AuthenticateUser(service string, email, password string, ctx context.Context) (bool, model.User, error)
 	GetUserById(id string, ctx context.Context) (model.User, error)
 }
 
@@ -215,8 +215,17 @@ func (serv RegisterService) VerifyEmailByToken(ctx context.Context, email, verif
 	return nil
 }
 
-func (serv RegisterService) AuthenticateUser(email, password string, ctx context.Context) (bool, model.User, error) {
+func (serv RegisterService) AuthenticateUser(service string, email, password string, ctx context.Context) (bool, model.User, error) {
 	defer serv.service.logger.Sync()
+
+	if service == "icc" {
+		isSggwEmail := serv.verifySggwEmail(email)
+
+		if !isSggwEmail {
+			serv.service.logger.Error("Provided email is not sggw email ")
+			return false, model.User{}, errors.New("invalid sggw email")
+		}
+	}
 
 	userDbo, err := serv.repository.GetUserByEmail(ctx, email)
 	if err == mongo.ErrNilDocument {

@@ -108,7 +108,7 @@ func (han RegisterHandler) HandleLoginUserRequest(ctx context.Context, input *mo
 	han.handler.logger.Debug("In HandleLoginUserRequest method")
 	resp := model.LoginUserResponse{}
 
-	isAuthenticate, user, err := han.registerService.AuthenticateUser(input.Body.Email, input.Body.Password, ctx)
+	isAuthenticate, user, err := han.registerService.AuthenticateUser(input.Body.Service, input.Body.Email, input.Body.Password, ctx)
 	if err != nil && err != mongo.ErrNilDocument {
 
 		resp.Body.Error = err.Error()
