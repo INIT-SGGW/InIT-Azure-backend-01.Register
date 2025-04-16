@@ -23,6 +23,8 @@ type User struct {
 	VerificationToken string             `bson:"token"`
 	Verified          bool               `bson:"verified"`
 	Events            []string           `bson:"events,omitempty"`
+	Occupation        string             `bson:"occupation,omitempty"`
+	DietPreference    string             `bson:"diet_preference,omitempty"`
 }
 
 type EmailTemplate struct {

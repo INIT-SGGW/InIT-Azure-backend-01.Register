@@ -61,7 +61,7 @@ func (han RegisterHandler) HandleRegisterUserRequest(ctx context.Context, input 
 		resp.Status = http.StatusInternalServerError
 		return &resp, nil
 	}
-	err = han.emailService.SendUserVerificationEmail(ctx, userDbo)
+	err = han.emailService.SendUserVerificationEmail(ctx, input.Body.Service, userDbo)
 	if err != nil {
 		resp.Body.Error = err.Error()
 		resp.Body.Status = "Confirmation email not send"
@@ -248,7 +248,7 @@ func (han RegisterHandler) HandleResendEmailRequest(ctx context.Context, input *
 	han.handler.logger.Debug("In HandleResendEmailRequest method")
 
 	resp := model.ResendEmailResponse{}
-	err := han.emailService.ResendVerificationEmail(ctx, input.Body.Email)
+	err := han.emailService.ResendVerificationEmail(ctx, input.Body.Service, input.Body.Email)
 	if err == mongo.ErrNoDocuments {
 		han.handler.logger.Error("Cannot find user in database",
 			zap.String("email", input.Body.Email),
