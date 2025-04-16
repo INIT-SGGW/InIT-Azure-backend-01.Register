@@ -141,6 +141,15 @@ func addRoutes(api huma.API, handler handler.RegisterHandler) {
 		Summary:     "Resend verification email",
 		Description: "If user exist in the database the verification email is resend to the provided adress",
 	}, handler.HandleResendEmailRequest)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "assign-to-event",
+		Method:      http.MethodPost,
+		Path:        "/register/event/assign",
+		Summary:     "Assign user to event",
+		Description: "If user exist in the database, assign user to the event",
+		Middlewares: huma.Middlewares{middleware},
+	}, handler.HandleAssignToEventRequest)
 }
 
 func addAdminRoutes(api huma.API, handler handler.AdminHandler, apiKey string) {
