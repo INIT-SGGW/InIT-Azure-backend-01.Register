@@ -111,3 +111,11 @@ type GetAdminResponse struct {
 		IsVerified      bool   `json:"verified" example:"true" doc:"true if admin has verified email"`
 	}
 }
+
+type AddEmailResponse struct {
+	Status int
+	Body   struct {
+		Status  string `json:"status" example:"verified" doc:"Status of email verification"`
+		Message string `json:"message,omitempty" example:"email and token do not match" doc:"Errors and information in admin verification"`
+	}
+}

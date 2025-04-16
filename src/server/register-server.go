@@ -141,6 +141,15 @@ func addRoutes(api huma.API, handler handler.RegisterHandler) {
 		Summary:     "Resend verification email",
 		Description: "If user exist in the database the verification email is resend to the provided adress",
 	}, handler.HandleResendEmailRequest)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "add-email",
+		Method:      http.MethodPost,
+		Path:        "/register/add/email",
+		Summary:     "Add email to user's account",
+		Description: "Add email to user's account and send confirmation email to provided adress with unique token for account verification",
+		Middlewares: huma.Middlewares{middleware},
+	}, handler.HandleAddEmailRequest)
 }
 
 func addAdminRoutes(api huma.API, handler handler.AdminHandler, apiKey string) {

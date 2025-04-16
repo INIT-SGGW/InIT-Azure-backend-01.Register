@@ -280,3 +280,48 @@ func (han RegisterHandler) HandleResendEmailRequest(ctx context.Context, input *
 
 	return &resp, nil
 }
+
+func (han RegisterHandler) HandleAddEmailRequest(ctx context.Context, input *model.AddEmailRequest) (*model.AddEmailResponse, error) {
+	defer han.handler.logger.Sync()
+
+	han.handler.logger.Debug("In HandleResendEmailRequest method")
+
+	resp := model.AddEmailResponse{}
+
+	token, err := jwtauth.VerifyToken(han.authToken, input.JwtCookie.Value)
+	if err != nil {
+		han.handler.logger.Error("Error verifying token",
+			zap.Error(err))
+
+		return &resp, err
+	}
+	claims := token.PrivateClaims()
+
+	id, exist := claims["id"]
+	if !exist {
+		han.handler.logger.Error("The id field is not present in the token")
+		return &resp, err
+	}
+
+	dbUser, err := han.registerService.AddUserEmail(ctx, id.(string), input.Body.Email)
+	if err != nil {
+		han.handler.logger.Error("Error adding email to user",
+			zap.Error(err))
+		return &resp, err
+	}
+
+	err = han.emailService.SendEmailVerificationEmail(ctx, dbUser, input.Body.Email)
+	if err != nil {
+		han.handler.logger.Error("Error sending email",
+			zap.Error(err))
+		return &resp, err
+	}
+
+	han.handler.logger.Info("Sucesfully added email to user",
+		zap.String("recipient", input.Body.Email))
+
+	resp.Status = http.StatusOK
+	resp.Body.Status = "email added"
+
+	return &resp, nil
+}

@@ -30,6 +30,7 @@ type EmailService struct {
 
 type EmailTemplateService interface {
 	SendUserVerificationEmail(ctx context.Context, service string, user model.User) error
+	SendEmailVerificationEmail(ctx context.Context, user model.User, email string) error
 	SendAdminVerificationEmail(ctx context.Context, admin model.Admin) error
 	ResendVerificationEmail(ctx context.Context, service string, email string) error
 }
@@ -109,6 +110,67 @@ func (srv EmailService) SendUserVerificationEmail(ctx context.Context, service s
 	dialer := gomail.NewDialer(srv.emailHost, port, srv.user, srv.password)
 
 	err = dialer.DialAndSend(email)
+	if err != nil {
+		srv.service.logger.Error("Error sending email",
+			zap.String("templateName", emailTmpl.TemplateName),
+			zap.String("host", srv.emailHost),
+			zap.Error(err))
+		return err
+	}
+
+	srv.service.logger.Info("Succesfully sending email",
+		zap.Strings("emails", user.Emails),
+		zap.String("templateName", emailTmpl.TemplateName),
+		zap.String("host", srv.emailHost))
+
+	return err
+}
+func (srv EmailService) SendEmailVerificationEmail(ctx context.Context, user model.User, email string) error {
+	defer srv.service.logger.Sync()
+
+	templateName := "init_add_email_verification"
+
+	emailTmpl, err := srv.repository.GetSingleTemplateByName(templateName, ctx)
+	if err != nil {
+		srv.service.logger.Error("Cannot retreive email template",
+			zap.String("templateName", templateName),
+			zap.Error(err))
+		return err
+	}
+	linkUrl, err := url.Parse(srv.verificationLinkHost)
+	if err != nil {
+		srv.service.logger.Error("Error creating verification link",
+			zap.String("templateName", templateName),
+			zap.Error(err))
+		return err
+	}
+	linkUrl.Path += "/register/add/email/verification"
+	params := url.Values{}
+	params.Add("email", email)
+	params.Add("token", user.VerificationToken)
+	linkUrl.RawQuery += params.Encode()
+
+	emailList := []string{email}
+
+	templUser := model.UserVerificationEmailTemplateModel{
+		Sender:            srv.emailSender,
+		VerificationToken: user.VerificationToken,
+		Recipients:        emailList,
+		VerificationLink:  linkUrl.String(),
+	}
+
+	message, err := srv.fillTemplate(emailTmpl, templUser)
+	if err != nil {
+		srv.service.logger.Error("Error parsing template",
+			zap.String("templateName", emailTmpl.TemplateName),
+			zap.Error(err))
+		return err
+	}
+
+	port, _ := strconv.Atoi(srv.emailPort)
+	dialer := gomail.NewDialer(srv.emailHost, port, srv.user, srv.password)
+
+	err = dialer.DialAndSend(message)
 	if err != nil {
 		srv.service.logger.Error("Error sending email",
 			zap.String("templateName", emailTmpl.TemplateName),

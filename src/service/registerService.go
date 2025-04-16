@@ -27,6 +27,7 @@ type UserService interface {
 	VerifyEmailByToken(ctx context.Context, email, verificationToken string) error
 	AuthenticateUser(service string, email, password string, ctx context.Context) (bool, model.User, error)
 	GetUserById(id string, ctx context.Context) (model.User, error)
+	AddUserEmail(ctx context.Context, id string, email string) (model.User, error)
 }
 
 func NewRegisterService(logger *zap.Logger, repository repository.RegisterRepository) RegisterService {
@@ -278,4 +279,19 @@ func (serv RegisterService) verifySggwEmail(email string) bool {
 		serv.service.logger.Info("Invalid sggw email")
 		return false
 	}
+}
+
+func (serv RegisterService) AddUserEmail(ctx context.Context, id string, email string) (model.User, error) {
+	defer serv.service.logger.Sync()
+
+	serv.service.logger.Debug("In AddUserEmail method")
+
+	dbUser, err := serv.repository.AddUserEmail(ctx, id, email)
+	if err != nil {
+		serv.service.logger.Error("Error adding email to user",
+			zap.Error(err))
+		return model.User{}, err
+	}
+
+	return dbUser, nil
 }
