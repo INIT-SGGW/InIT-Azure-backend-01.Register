@@ -8,8 +8,6 @@ import (
 
 	"INIT-SGGW/InIT-Azure-backend-01.Register/model"
 
-	"errors"
-
 	"github.com/google/uuid"
 
 	"go.mongodb.org/mongo-driver/bson"
