@@ -5,6 +5,7 @@ import (
 	"INIT-SGGW/InIT-Azure-backend-01.Register/repository"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"html/template"
 	"net/url"
@@ -28,9 +29,9 @@ type EmailService struct {
 }
 
 type EmailTemplateService interface {
-	SendUserVerificationEmail(ctx context.Context, user model.User) error
+	SendUserVerificationEmail(ctx context.Context, service string, user model.User) error
 	SendAdminVerificationEmail(ctx context.Context, admin model.Admin) error
-	ResendVerificationEmail(ctx context.Context, email string) error
+	ResendVerificationEmail(ctx context.Context, service string, email string) error
 }
 
 func NewEmailService(logger *zap.Logger, user, password, emailHost, emailPort, emailSender, verificationLinkHost string, repository repository.EmailRepository) *EmailService {
@@ -46,9 +47,26 @@ func NewEmailService(logger *zap.Logger, user, password, emailHost, emailPort, e
 	}
 }
 
-func (srv EmailService) SendUserVerificationEmail(ctx context.Context, user model.User) error {
+func (srv EmailService) SendUserVerificationEmail(ctx context.Context, service string, user model.User) error {
 	defer srv.service.logger.Sync()
-	templateName := "icc_account_verification"
+
+	templateName := ""
+	switch service {
+	case "icc":
+		{
+			templateName = "icc_account_verification"
+		}
+	case "ha":
+		{
+			templateName = "ha_account_verification"
+		}
+	default:
+		{
+			srv.service.logger.Error("Service not supported",
+				zap.String("service", service))
+			return errors.New("service not supported")
+		}
+	}
 
 	emailTmpl, err := srv.repository.GetSingleTemplateByName(templateName, ctx)
 	if err != nil {
@@ -107,7 +125,7 @@ func (srv EmailService) SendUserVerificationEmail(ctx context.Context, user mode
 	return err
 }
 
-func (srv EmailService) ResendVerificationEmail(ctx context.Context, email string) error {
+func (srv EmailService) ResendVerificationEmail(ctx context.Context, service string, email string) error {
 	defer srv.service.logger.Sync()
 
 	srv.service.logger.Debug("In method ResendVerificationEmail")
@@ -132,7 +150,7 @@ func (srv EmailService) ResendVerificationEmail(ctx context.Context, email strin
 		zap.String("email", userDbo.Emails[0]),
 		zap.String("userId", userDbo.ID.String()))
 
-	err = srv.SendUserVerificationEmail(ctx, userDbo)
+	err = srv.SendUserVerificationEmail(ctx, service, userDbo)
 	if err != nil {
 		srv.service.logger.Error("Error sending email",
 			zap.String("email", email),

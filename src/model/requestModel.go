@@ -7,16 +7,23 @@ import (
 
 type RegisterUserRequest struct {
 	Body struct {
+		Service               string    `json:"service" example:"ha" doc:"Name of a service, where user is trying to register"`
 		FirstName             string    `json:"firstName" example:"John" doc:"User first name"`
 		LastName              string    `json:"lastName" example:"Doe" doc:"User last name"`
 		Email                 string    `json:"email" example:"john.doe@example.com" doc:"User email, the confirmation will be send to that adress"`
 		Password              string    `json:"password" example:"Pa$$word123!" doc:"User Password"`
-		StudentIndex          string    `json:"studentIndex" example:"222222" doc:"Student index"`
-		AcademicYear          int       `json:"academicYear" example:"3" doc:"Academic year of student"`
-		Faculty               string    `json:"faculity" example:"Wydzial Budownictwa i Inzynieri Srodowiska" doc:"Faculty on the sggw, where student is assigned"`
-		Degree                string    `json:"degree" example:"Bachelor" doc:"deggree of studies student attend to"`
 		DateOfBirth           time.Time `json:"dateOfBirth" example:"2000-03-23T07:00:00+01:00" doc:"Date of birth for age information"`
 		IsAggrementFulfielled bool      `json:"aggrement" example:"true" doc:"Check if the aggrement is approved"`
+
+		// ICC data
+		StudentIndex *string `json:"studentIndex,omitempty" example:"222222" doc:"Student index"`
+		AcademicYear *int    `json:"academicYear,omitempty" example:"3" doc:"Academic year of student"`
+		Faculty      *string `json:"faculity,omitempty" example:"Wydzial Budownictwa i Inzynieri Srodowiska" doc:"Faculty on the sggw, where student is assigned"`
+		Degree       *string `json:"degree,omitempty" example:"Bachelor" doc:"deggree of studies student attend to"`
+
+		// HA data
+		Occupation     *string `json:"occupation,omitempty" example:"Student" doc:"Occupation of user"`
+		DietPreference *string `json:"dietPreference,omitempty" example:"Vegetarian" doc:"Diet preferences of user"`
 	}
 }
 
@@ -29,6 +36,7 @@ type UserVerificationRequest struct {
 
 type LoginUserRequest struct {
 	Body struct {
+		Service  string `json:"service" example:"ha" doc:"Name of a service, where user is trying to log in"`
 		Email    string `json:"email" example:"john.doe@example.com" doc:"User email send to log in"`
 		Password string `json:"password" example:"secretPa$$word!" doc:"Password send for authentication"`
 	}
@@ -55,7 +63,8 @@ type UpdateUserRequest struct {
 
 type ResendEmailRequest struct {
 	Body struct {
-		Email string `json:"email" example:"john.doe@example.com" doc:"User email, the confirmation will be resend to that adress if already exist in database"`
+		Service string `json:"service" example:"ha" doc:"Name of a service, where user is trying to register"`
+		Email   string `json:"email" example:"john.doe@example.com" doc:"User email, the confirmation will be resend to that adress if already exist in database"`
 	}
 }
 
