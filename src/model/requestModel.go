@@ -110,3 +110,11 @@ type GetAdminRequest struct {
 	JwtCookie http.Cookie `cookie:"jwt-init-admin"`
 	Id        string      `path:"id" example:"67c0df2b24397b2e860be392" doc:"requested admin id"`
 }
+
+type AssignToEventRequest struct {
+	JwtCookie http.Cookie `cookie:"jwt"`
+
+	Body struct {
+		Event string `json:"event" example:"ha25" doc:"Event name to assign user"`
+	}
+}

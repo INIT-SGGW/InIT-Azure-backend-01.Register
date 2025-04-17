@@ -111,3 +111,12 @@ type GetAdminResponse struct {
 		IsVerified      bool   `json:"verified" example:"true" doc:"true if admin has verified email"`
 	}
 }
+
+type AssignToEventResponse struct {
+	Status int
+
+	Body struct {
+		Status  string `json:"status" example:"assigned" doc:"Status of assigning user to event"`
+		Message string `json:"message,omitempty" example:"user for the email address not found" doc:"Errors in assigning user to event"`
+	}
+}
