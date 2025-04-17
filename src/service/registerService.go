@@ -142,11 +142,13 @@ func (serv RegisterService) createUserModel(request model.RegisterUserRequest) (
 			modelUser.AcademicYear = *request.Body.AcademicYear
 			modelUser.Faculty = *request.Body.Faculty
 			modelUser.Degree = *request.Body.Degree
+			modelUser.Events = []string{"icc"}
 		}
 	case "ha":
 		{
 			modelUser.Occupation = *request.Body.Occupation
 			modelUser.DietPreference = *request.Body.DietPreference
+			modelUser.Events = []string{"ha"}
 		}
 	default:
 		{
