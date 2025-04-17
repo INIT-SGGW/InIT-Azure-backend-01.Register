@@ -37,6 +37,7 @@ type RegisterRepository interface {
 	GetUserByID(ctx context.Context, id string) (model.User, error)
 	AddUserEmail(ctx context.Context, id string, email string) (model.User, error)
 	AssignUserToEvent(ctx context.Context, id string, event string) error
+	CreateUserFromInvitation(ctx context.Context, user model.User, token string) (model.User, error)
 }
 
 func NewRegisterRepository(connectionString, dbname string, logger *zap.Logger) MongoRepository {
@@ -311,4 +312,51 @@ func (repo MongoRepository) AssignUserToEvent(ctx context.Context, id string, ev
 
 	repo.logger.Info("Successfully assigned event to user")
 	return nil
+}
+
+func (repo MongoRepository) CreateUserFromInvitation(ctx context.Context, user model.User, token string) (model.User, error) {
+	defer repo.logger.Sync()
+
+	repo.logger.Debug("In UpdateUserByEmail method")
+
+	coll := repo.client.Database(repo.database).Collection(USER_COLLECTION_NAME)
+	// filter user by email and token
+	filter := bson.D{
+		{Key: "emails", Value: user.Emails[0]},
+	}
+	// update user with data from user
+	update := bson.D{
+		{Key: "$set", Value: bson.D{
+			{Key: "first_name", Value: user.FirstName},
+			{Key: "last_name", Value: user.LastName},
+			{Key: "academic_year", Value: user.AcademicYear},
+			{Key: "faculity", Value: user.Faculty},
+			{Key: "degree", Value: user.Degree},
+			{Key: "date_of_birth", Value: user.DateOfBirth},
+			{Key: "agreement", Value: user.Agreement},
+			{Key: "student_index", Value: user.StudentIndex},
+			{Key: "occupation", Value: user.Occupation},
+			{Key: "diet_preference", Value: user.DietPreference},
+		}},
+		{Key: "$set", Value: bson.D{{Key: "verified", Value: true}}},
+	}
+
+	result, err := coll.UpdateOne(ctx, filter, update)
+	if err != nil {
+		repo.logger.Error("Error updating user in database",
+			zap.String("database", repo.database),
+			zap.String("collection", USER_COLLECTION_NAME),
+			zap.Error(err))
+		return model.User{}, err
+	}
+	if result.MatchedCount == 0 {
+		repo.logger.Error("Cannot find following user in database",
+			zap.String("database", repo.database),
+			zap.String("collection", USER_COLLECTION_NAME),
+			zap.String("email", user.Emails[0]),
+			zap.String("token", token))
+		return model.User{}, errors.New("user not found")
+	}
+
+	return user, nil
 }

@@ -23,12 +23,13 @@ type RegisterService struct {
 
 type UserService interface {
 	CreateNewUser(ctx context.Context, dboUser model.User) error
-	MapUserRequestToDBO(request model.RegisterUserRequest) (model.User, error)
+	MapUserRequestToDBO(request model.RegisterUserBody, verified bool) (model.User, error)
 	VerifyEmailByToken(ctx context.Context, email, verificationToken string) error
 	AuthenticateUser(service string, email, password string, ctx context.Context) (bool, model.User, error)
 	GetUserById(id string, ctx context.Context) (model.User, error)
 	AddUserEmail(ctx context.Context, id string, email string) (model.User, error)
 	AssignUserToEvent(ctx context.Context, id string, event string) error
+	CreateUserFromInvitation(ctx context.Context, user model.User, token string) (model.User, error)
 }
 
 func NewRegisterService(logger *zap.Logger, repository repository.RegisterRepository) RegisterService {
@@ -57,44 +58,44 @@ func (serv RegisterService) CreateNewUser(ctx context.Context, dboUser model.Use
 
 }
 
-func (serv RegisterService) validateRegisterBody(request model.RegisterUserRequest) error {
+func (serv RegisterService) validateRegisterBody(request model.RegisterUserBody) error {
 	defer serv.service.logger.Sync()
 
 	serv.service.logger.Debug("In validateRegisterBody method")
-	switch request.Body.Service {
+	switch request.Service {
 	case "icc":
 		{
-			isSggwEmail := serv.verifySggwEmail(request.Body.Email)
+			isSggwEmail := serv.verifySggwEmail(request.Email)
 
 			if !isSggwEmail {
 				serv.service.logger.Error("Provided email is not sggw email ")
 				return errors.New("invalid sggw email")
 			}
 
-			if request.Body.StudentIndex == nil {
+			if request.StudentIndex == nil {
 				serv.service.logger.Error("Student index is a required field")
 				return errors.New("student index is a required field")
 			}
-			if request.Body.AcademicYear == nil {
+			if request.AcademicYear == nil {
 				serv.service.logger.Error("Academic year is a required field")
 				return errors.New("academic year is a required field")
 			}
-			if request.Body.Faculty == nil {
+			if request.Faculty == nil {
 				serv.service.logger.Error("Faculty is a required field")
 				return errors.New("faculty is a required field")
 			}
-			if request.Body.Degree == nil {
+			if request.Degree == nil {
 				serv.service.logger.Error("Degree is a required field")
 				return errors.New("degree is a required field")
 			}
 		}
 	case "ha":
 		{
-			if request.Body.Occupation == nil {
+			if request.Occupation == nil {
 				serv.service.logger.Error("Occupation is a required field")
 				return errors.New("occupation is a required field")
 			}
-			if request.Body.DietPreference == nil {
+			if request.DietPreference == nil {
 				serv.service.logger.Error("Diet preference is a required field")
 				return errors.New("diet preference is a required field")
 			}
@@ -102,7 +103,7 @@ func (serv RegisterService) validateRegisterBody(request model.RegisterUserReque
 		}
 	default:
 		{
-			serv.service.logger.Error("Service is not supported", zap.String("service", request.Body.Service))
+			serv.service.logger.Error("Service is not supported", zap.String("service", request.Service))
 			return errors.New("service is not supported")
 		}
 	}
@@ -110,10 +111,10 @@ func (serv RegisterService) validateRegisterBody(request model.RegisterUserReque
 	return nil
 }
 
-func (serv RegisterService) createUserModel(request model.RegisterUserRequest) (model.User, error) {
+func (serv RegisterService) createUserModel(request model.RegisterUserBody, verified bool) (model.User, error) {
 	defer serv.service.logger.Sync()
 
-	hashPass, err := serv.service.hashPassword(request.Body.Password)
+	hashPass, err := serv.service.hashPassword(request.Password)
 	if err != nil {
 		serv.service.logger.Error("Error Hashing password",
 			zap.Error(err))
@@ -125,34 +126,34 @@ func (serv RegisterService) createUserModel(request model.RegisterUserRequest) (
 		ID:                primitive.NewObjectID(),
 		CreatedAt:         time.Now(),
 		UpdatedAt:         time.Now(),
-		FirstName:         request.Body.FirstName,
-		LastName:          request.Body.LastName,
+		FirstName:         request.FirstName,
+		LastName:          request.LastName,
 		Password:          hashPass,
-		Emails:            []string{request.Body.Email},
-		DateOfBirth:       request.Body.DateOfBirth,
-		Agreement:         request.Body.IsAggrementFulfielled,
-		Verified:          false,
+		Emails:            []string{request.Email},
+		DateOfBirth:       request.DateOfBirth,
+		Agreement:         request.IsAggrementFulfielled,
+		Verified:          verified,
 		VerificationToken: uniqueVerificationToken,
 	}
 
-	switch request.Body.Service {
+	switch request.Service {
 	case "icc":
 		{
-			modelUser.StudentIndex = *request.Body.StudentIndex
-			modelUser.AcademicYear = *request.Body.AcademicYear
-			modelUser.Faculty = *request.Body.Faculty
-			modelUser.Degree = *request.Body.Degree
+			modelUser.StudentIndex = *request.StudentIndex
+			modelUser.AcademicYear = *request.AcademicYear
+			modelUser.Faculty = *request.Faculty
+			modelUser.Degree = *request.Degree
 			modelUser.Events = []string{"icc"}
 		}
 	case "ha":
 		{
-			modelUser.Occupation = *request.Body.Occupation
-			modelUser.DietPreference = *request.Body.DietPreference
+			modelUser.Occupation = *request.Occupation
+			modelUser.DietPreference = *request.DietPreference
 			modelUser.Events = []string{"ha"}
 		}
 	default:
 		{
-			serv.service.logger.Error("Service is not supported", zap.String("service", request.Body.Service))
+			serv.service.logger.Error("Service is not supported", zap.String("service", request.Service))
 			return model.User{}, errors.New("service is not supported")
 		}
 	}
@@ -160,7 +161,7 @@ func (serv RegisterService) createUserModel(request model.RegisterUserRequest) (
 	return modelUser, nil
 }
 
-func (serv RegisterService) MapUserRequestToDBO(request model.RegisterUserRequest) (model.User, error) {
+func (serv RegisterService) MapUserRequestToDBO(request model.RegisterUserBody, verified bool) (model.User, error) {
 	defer serv.service.logger.Sync()
 
 	serv.service.logger.Debug("Start mapping user object to DBO user ")
@@ -172,7 +173,7 @@ func (serv RegisterService) MapUserRequestToDBO(request model.RegisterUserReques
 		return model.User{}, err
 	}
 
-	dboUser, err := serv.createUserModel(request)
+	dboUser, err := serv.createUserModel(request, verified)
 	if err != nil {
 		serv.service.logger.Error("Error in creating user model",
 			zap.Error(err))
@@ -328,4 +329,18 @@ func (serv RegisterService) AssignUserToEvent(ctx context.Context, id string, ev
 	}
 
 	return nil
+}
+
+func (serv RegisterService) CreateUserFromInvitation(ctx context.Context, user model.User, token string) (model.User, error) {
+	defer serv.service.logger.Sync()
+
+	serv.service.logger.Debug("In UpdateUserByEmail method")
+
+	user, err := serv.repository.CreateUserFromInvitation(ctx, user, token)
+	if err != nil {
+		serv.service.logger.Error("Error updating user in database",
+			zap.Error(err))
+		return model.User{}, err
+	}
+	return user, nil
 }

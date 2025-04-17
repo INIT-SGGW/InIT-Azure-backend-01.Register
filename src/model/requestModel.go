@@ -5,25 +5,35 @@ import (
 	"time"
 )
 
+type RegisterUserBody struct {
+	Service               string    `json:"service" example:"ha" doc:"Name of a service, where user is trying to register"`
+	FirstName             string    `json:"firstName" example:"John" doc:"User first name"`
+	LastName              string    `json:"lastName" example:"Doe" doc:"User last name"`
+	Email                 string    `json:"email" example:"john.doe@example.com" doc:"User email, the confirmation will be send to that adress"`
+	Password              string    `json:"password" example:"Pa$$word123!" doc:"User Password"`
+	DateOfBirth           time.Time `json:"dateOfBirth" example:"2000-03-23T07:00:00+01:00" doc:"Date of birth for age information"`
+	IsAggrementFulfielled bool      `json:"aggrement" example:"true" doc:"Check if the aggrement is approved"`
+
+	// ICC data
+	StudentIndex *string `json:"studentIndex,omitempty" example:"222222" doc:"Student index"`
+	AcademicYear *int    `json:"academicYear,omitempty" example:"3" doc:"Academic year of student"`
+	Faculty      *string `json:"faculity,omitempty" example:"Wydzial Budownictwa i Inzynieri Srodowiska" doc:"Faculty on the sggw, where student is assigned"`
+	Degree       *string `json:"degree,omitempty" example:"Bachelor" doc:"deggree of studies student attend to"`
+
+	// HA data
+	Occupation     *string `json:"occupation,omitempty" example:"Student" doc:"Occupation of user"`
+	DietPreference *string `json:"dietPreference,omitempty" example:"Vegetarian" doc:"Diet preferences of user"`
+}
+
 type RegisterUserRequest struct {
+	Body RegisterUserBody
+}
+
+type RegisterUserFromInvitationRequest struct {
 	Body struct {
-		Service               string    `json:"service" example:"ha" doc:"Name of a service, where user is trying to register"`
-		FirstName             string    `json:"firstName" example:"John" doc:"User first name"`
-		LastName              string    `json:"lastName" example:"Doe" doc:"User last name"`
-		Email                 string    `json:"email" example:"john.doe@example.com" doc:"User email, the confirmation will be send to that adress"`
-		Password              string    `json:"password" example:"Pa$$word123!" doc:"User Password"`
-		DateOfBirth           time.Time `json:"dateOfBirth" example:"2000-03-23T07:00:00+01:00" doc:"Date of birth for age information"`
-		IsAggrementFulfielled bool      `json:"aggrement" example:"true" doc:"Check if the aggrement is approved"`
+		VerificationToken string `json:"verificationToken" example:"d4f8c767-8e92-4504-8565-3369d78dbc30" doc:"Unique token genereated for each user in registration provided in link as token"`
 
-		// ICC data
-		StudentIndex *string `json:"studentIndex,omitempty" example:"222222" doc:"Student index"`
-		AcademicYear *int    `json:"academicYear,omitempty" example:"3" doc:"Academic year of student"`
-		Faculty      *string `json:"faculity,omitempty" example:"Wydzial Budownictwa i Inzynieri Srodowiska" doc:"Faculty on the sggw, where student is assigned"`
-		Degree       *string `json:"degree,omitempty" example:"Bachelor" doc:"deggree of studies student attend to"`
-
-		// HA data
-		Occupation     *string `json:"occupation,omitempty" example:"Student" doc:"Occupation of user"`
-		DietPreference *string `json:"dietPreference,omitempty" example:"Vegetarian" doc:"Diet preferences of user"`
+		RegisterUserBody
 	}
 }
 
@@ -126,4 +136,3 @@ type AssignToEventRequest struct {
 		Event string `json:"event" example:"ha25" doc:"Event name to assign user"`
 	}
 }
-

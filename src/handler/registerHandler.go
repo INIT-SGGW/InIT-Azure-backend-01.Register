@@ -38,7 +38,7 @@ func (han RegisterHandler) HandleRegisterUserRequest(ctx context.Context, input 
 	han.handler.logger.Debug("In HandleRegisterUserRequest method")
 
 	resp := model.RegisterUserResponse{}
-	userDbo, err := han.registerService.MapUserRequestToDBO(*input)
+	userDbo, err := han.registerService.MapUserRequestToDBO(*&input.Body, false)
 	if err != nil {
 		resp.Body.Error = err.Error()
 		resp.Body.Status = "Error in mapping to user to dboUser "
@@ -65,6 +65,35 @@ func (han RegisterHandler) HandleRegisterUserRequest(ctx context.Context, input 
 	if err != nil {
 		resp.Body.Error = err.Error()
 		resp.Body.Status = "Confirmation email not send"
+		resp.Status = http.StatusInternalServerError
+		return &resp, nil
+	}
+
+	resp.Body.Status = "created"
+	resp.Status = http.StatusCreated
+
+	return &resp, nil
+
+}
+
+func (han RegisterHandler) HandleRegisterUserFromInvitationRequest(ctx context.Context, input *model.RegisterUserFromInvitationRequest) (*model.RegisterUserResponse, error) {
+	defer han.handler.logger.Sync()
+
+	han.handler.logger.Debug("In HandleRegisterUserFromInvitationRequest method")
+
+	resp := model.RegisterUserResponse{}
+	userDbo, err := han.registerService.MapUserRequestToDBO(*&input.Body.RegisterUserBody, true)
+	if err != nil {
+		resp.Body.Error = err.Error()
+		resp.Body.Status = "Error in mapping to user to dboUser "
+		resp.Status = http.StatusBadRequest
+		return &resp, nil
+	}
+
+	_, err = han.registerService.CreateUserFromInvitation(ctx, userDbo, input.Body.VerificationToken)
+	if err != nil {
+		resp.Body.Error = err.Error()
+		resp.Body.Status = "User not created"
 		resp.Status = http.StatusInternalServerError
 		return &resp, nil
 	}

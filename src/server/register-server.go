@@ -159,6 +159,14 @@ func addRoutes(api huma.API, handler handler.RegisterHandler) {
 		Description: "If user exist in the database, assign user to the event",
 		Middlewares: huma.Middlewares{middleware},
 	}, handler.HandleAssignToEventRequest)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "ceate-user-from-invitation",
+		Method:      http.MethodPost,
+		Path:        "/register/user/invitation",
+		Summary:     "Create user from invitation",
+		Description: "Create user from invitation and add notification",
+	}, handler.HandleRegisterUserFromInvitationRequest)
 }
 
 func addAdminRoutes(api huma.API, handler handler.AdminHandler, apiKey string) {
