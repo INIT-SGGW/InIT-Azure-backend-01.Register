@@ -118,3 +118,12 @@ type AddEmailRequest struct {
 		Email string `json:"email" example:"john.doe@example.com" doc:"User email, the confirmation will be send to that adress"`
 	}
 }
+
+type AssignToEventRequest struct {
+	JwtCookie http.Cookie `cookie:"jwt"`
+
+	Body struct {
+		Event string `json:"event" example:"ha25" doc:"Event name to assign user"`
+	}
+}
+

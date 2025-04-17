@@ -4,6 +4,8 @@ import (
 	"context"
 	"os"
 
+	"errors"
+
 	"INIT-SGGW/InIT-Azure-backend-01.Register/model"
 
 	"errors"
@@ -36,6 +38,7 @@ type RegisterRepository interface {
 	GetUserByEmail(ctx context.Context, email string) (model.User, error)
 	GetUserByID(ctx context.Context, id string) (model.User, error)
 	AddUserEmail(ctx context.Context, id string, email string) (model.User, error)
+	AssignUserToEvent(ctx context.Context, id string, event string) error
 }
 
 func NewRegisterRepository(connectionString, dbname string, logger *zap.Logger) MongoRepository {
@@ -282,4 +285,32 @@ func (repo MongoRepository) AddUserEmail(ctx context.Context, id string, email s
 		zap.String("collection", USER_COLLECTION_NAME))
 
 	return updatedUser, err
+}
+
+func (repo MongoRepository) AssignUserToEvent(ctx context.Context, id string, event string) error {
+	defer repo.logger.Sync()
+	repo.logger.Debug("In AssignUserToEvent method")
+	repo.logger.Info("Assigning user to event", zap.String("event", event), zap.String("userID", id))
+
+	coll := repo.client.Database(repo.database).Collection(USER_COLLECTION_NAME)
+
+	objectId, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+
+	filter := bson.M{"_id": objectId, "events": bson.M{"$ne": event}}
+	update := bson.M{"$push": bson.M{"events": event}}
+
+	result, err := coll.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return err
+	}
+
+	if result.MatchedCount == 0 {
+		return errors.New("User already assigned to event")
+	}
+
+	repo.logger.Info("Successfully assigned event to user")
+	return nil
 }

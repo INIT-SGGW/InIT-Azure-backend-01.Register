@@ -119,3 +119,12 @@ type AddEmailResponse struct {
 		Message string `json:"message,omitempty" example:"email and token do not match" doc:"Errors and information in admin verification"`
 	}
 }
+
+type AssignToEventResponse struct {
+	Status int
+
+	Body struct {
+		Status  string `json:"status" example:"assigned" doc:"Status of assigning user to event"`
+		Message string `json:"message,omitempty" example:"user for the email address not found" doc:"Errors in assigning user to event"`
+	}
+}

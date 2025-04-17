@@ -325,3 +325,56 @@ func (han RegisterHandler) HandleAddEmailRequest(ctx context.Context, input *mod
 
 	return &resp, nil
 }
+
+func (han RegisterHandler) HandleAssignToEventRequest(ctx context.Context, input *model.AssignToEventRequest) (*model.AssignToEventResponse, error) {
+	defer han.handler.logger.Sync()
+
+	han.handler.logger.Debug("In HandleAssignToEventRequest method")
+
+	resp := model.AssignToEventResponse{}
+
+	token, err := jwtauth.VerifyToken(han.authToken, input.JwtCookie.Value)
+	if err != nil {
+		han.handler.logger.Error("Error verifying token",
+			zap.Error(err))
+
+		resp.Status = http.StatusUnauthorized
+		resp.Body.Status = "user not authenticated"
+		resp.Body.Message = "Error in token verification"
+		return &resp, nil
+	}
+	claims := token.PrivateClaims()
+
+	id, exist := claims["id"]
+	if !exist {
+		han.handler.logger.Error("The id field is not present in the token")
+
+		resp.Status = http.StatusUnauthorized
+		resp.Body.Status = "user not authenticated"
+		resp.Body.Message = "No user id in token"
+
+		return &resp, nil
+	}
+
+	err = han.registerService.AssignUserToEvent(ctx, id.(string), input.Body.Event)
+	if err != nil {
+		han.handler.logger.Error("Error assigning user to event",
+			zap.String("event", input.Body.Event),
+			zap.String("userId", id.(string)),
+			zap.Error(err))
+
+		resp.Body.Status = "user cannot be assigned to event"
+		resp.Body.Message = err.Error()
+		resp.Status = http.StatusBadRequest
+
+		return &resp, nil
+	}
+
+	han.handler.logger.Info("Sucesfully assigned user to event",
+		zap.String("event", input.Body.Event))
+
+	resp.Status = http.StatusOK
+	resp.Body.Status = "resend"
+
+	return &resp, nil
+}

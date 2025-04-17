@@ -150,6 +150,15 @@ func addRoutes(api huma.API, handler handler.RegisterHandler) {
 		Description: "Add email to user's account and send confirmation email to provided adress with unique token for account verification",
 		Middlewares: huma.Middlewares{middleware},
 	}, handler.HandleAddEmailRequest)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "assign-to-event",
+		Method:      http.MethodPost,
+		Path:        "/register/event/assign",
+		Summary:     "Assign user to event",
+		Description: "If user exist in the database, assign user to the event",
+		Middlewares: huma.Middlewares{middleware},
+	}, handler.HandleAssignToEventRequest)
 }
 
 func addAdminRoutes(api huma.API, handler handler.AdminHandler, apiKey string) {
