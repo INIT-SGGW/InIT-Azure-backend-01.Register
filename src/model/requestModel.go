@@ -111,6 +111,14 @@ type GetAdminRequest struct {
 	Id        string      `path:"id" example:"67c0df2b24397b2e860be392" doc:"requested admin id"`
 }
 
+type AddEmailRequest struct {
+	JwtCookie http.Cookie `cookie:"jwt"`
+
+	Body struct {
+		Email string `json:"email" example:"john.doe@example.com" doc:"User email, the confirmation will be send to that adress"`
+	}
+}
+
 type AssignToEventRequest struct {
 	JwtCookie http.Cookie `cookie:"jwt"`
 
@@ -118,3 +126,4 @@ type AssignToEventRequest struct {
 		Event string `json:"event" example:"ha25" doc:"Event name to assign user"`
 	}
 }
+

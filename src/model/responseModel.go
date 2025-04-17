@@ -112,6 +112,14 @@ type GetAdminResponse struct {
 	}
 }
 
+type AddEmailResponse struct {
+	Status int
+	Body   struct {
+		Status  string `json:"status" example:"verified" doc:"Status of email verification"`
+		Message string `json:"message,omitempty" example:"email and token do not match" doc:"Errors and information in admin verification"`
+	}
+}
+
 type AssignToEventResponse struct {
 	Status int
 

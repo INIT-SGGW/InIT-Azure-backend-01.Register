@@ -27,6 +27,7 @@ type UserService interface {
 	VerifyEmailByToken(ctx context.Context, email, verificationToken string) error
 	AuthenticateUser(service string, email, password string, ctx context.Context) (bool, model.User, error)
 	GetUserById(id string, ctx context.Context) (model.User, error)
+	AddUserEmail(ctx context.Context, id string, email string) (model.User, error)
 	AssignUserToEvent(ctx context.Context, id string, event string) error
 }
 
@@ -281,6 +282,21 @@ func (serv RegisterService) verifySggwEmail(email string) bool {
 	}
 }
 
+func (serv RegisterService) AddUserEmail(ctx context.Context, id string, email string) (model.User, error) {
+	defer serv.service.logger.Sync()
+
+	serv.service.logger.Debug("In AddUserEmail method")
+
+	dbUser, err := serv.repository.AddUserEmail(ctx, id, email)
+	if err != nil {
+		serv.service.logger.Error("Error adding email to user",
+			zap.Error(err))
+		return model.User{}, err
+	}
+
+	return dbUser, nil
+}
+
 func (serv RegisterService) isEventValid(event string, events []string) bool {
 	defer serv.service.logger.Sync()
 
@@ -297,7 +313,7 @@ func (serv RegisterService) isEventValid(event string, events []string) bool {
 func (serv RegisterService) AssignUserToEvent(ctx context.Context, id string, event string) error {
 	defer serv.service.logger.Sync()
 
-	events := []string{"ha25", "icc"}
+	events := []string{"ha_25", "icc"}
 
 	if !serv.isEventValid(event, events) {
 		serv.service.logger.Error("Provided event is not valid", zap.String("event", event))

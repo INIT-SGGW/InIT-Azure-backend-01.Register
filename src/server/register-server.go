@@ -143,6 +143,15 @@ func addRoutes(api huma.API, handler handler.RegisterHandler) {
 	}, handler.HandleResendEmailRequest)
 
 	huma.Register(api, huma.Operation{
+		OperationID: "add-email",
+		Method:      http.MethodPost,
+		Path:        "/register/add/email",
+		Summary:     "Add email to user's account",
+		Description: "Add email to user's account and send confirmation email to provided adress with unique token for account verification",
+		Middlewares: huma.Middlewares{middleware},
+	}, handler.HandleAddEmailRequest)
+
+	huma.Register(api, huma.Operation{
 		OperationID: "assign-to-event",
 		Method:      http.MethodPost,
 		Path:        "/register/event/assign",

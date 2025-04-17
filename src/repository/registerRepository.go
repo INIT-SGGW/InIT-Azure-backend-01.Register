@@ -8,9 +8,14 @@ import (
 
 	"INIT-SGGW/InIT-Azure-backend-01.Register/model"
 
+	"errors"
+
+	"github.com/google/uuid"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
 )
 
@@ -32,6 +37,7 @@ type RegisterRepository interface {
 	VerifyUser(ctx context.Context, email string) error
 	GetUserByEmail(ctx context.Context, email string) (model.User, error)
 	GetUserByID(ctx context.Context, id string) (model.User, error)
+	AddUserEmail(ctx context.Context, id string, email string) (model.User, error)
 	AssignUserToEvent(ctx context.Context, id string, event string) error
 }
 
@@ -203,6 +209,82 @@ func (repo MongoRepository) GetUserByID(ctx context.Context, id string) (model.U
 
 	return dboUser, err
 
+}
+
+func (repo MongoRepository) AddUserEmail(ctx context.Context, id string, email string) (model.User, error) {
+	// add email to emails array, set verified to false and add token
+	defer repo.logger.Sync()
+
+	repo.logger.Debug("In AddUserEmail method")
+
+	coll := repo.client.Database(repo.database).Collection(USER_COLLECTION_NAME)
+
+	queryId, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		repo.logger.Error("Cannot parse id to ObjectId",
+			zap.String("database", repo.database),
+			zap.String("collection", USER_COLLECTION_NAME),
+			zap.String("id", id),
+			zap.Error(err))
+	}
+
+	// check if email is already in emails array
+	filter := bson.D{{Key: "_id", Value: queryId}, {Key: "emails", Value: email}}
+	result := coll.FindOne(ctx, filter)
+	err = result.Err()
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			repo.logger.Debug("Email is not in emails array")
+		} else {
+			repo.logger.Error("Error retreiving user from database",
+				zap.String("database", repo.database),
+				zap.String("collection", USER_COLLECTION_NAME),
+				zap.Error(err))
+			return model.User{}, err
+		}
+	} else {
+		repo.logger.Error("Email already exists in emails array",
+			zap.String("database", repo.database),
+			zap.String("collection", USER_COLLECTION_NAME),
+			zap.String("email", email))
+		return model.User{}, errors.New("email already exists")
+	}
+
+	filter = bson.D{{Key: "_id", Value: queryId}}
+	update := bson.D{
+		{Key: "$addToSet", Value: bson.D{{Key: "emails", Value: email}}},
+		{Key: "$set", Value: bson.D{{Key: "verified", Value: false}}},
+		{Key: "$set", Value: bson.D{{Key: "token", Value: uuid.NewString()}}},
+	}
+
+	var updatedUser model.User
+
+	err = coll.FindOneAndUpdate(
+		ctx,
+		filter,
+		update,
+		options.FindOneAndUpdate().SetReturnDocument(1)).Decode(&updatedUser)
+	if err == mongo.ErrNoDocuments {
+		repo.logger.Error("Cannot find following user in database",
+			zap.String("database", repo.database),
+			zap.String("collection", USER_COLLECTION_NAME),
+			zap.String("id", queryId.String()),
+			zap.Error(err))
+
+		return model.User{}, err
+	}
+	if err != nil {
+		repo.logger.Error("Error retreiving user from database",
+			zap.String("database", repo.database),
+			zap.String("collection", USER_COLLECTION_NAME),
+			zap.Error(err))
+		return model.User{}, err
+	}
+	repo.logger.Info("Sucesfully retreive user from database",
+		zap.String("database", repo.database),
+		zap.String("collection", USER_COLLECTION_NAME))
+
+	return updatedUser, err
 }
 
 func (repo MongoRepository) AssignUserToEvent(ctx context.Context, id string, event string) error {
