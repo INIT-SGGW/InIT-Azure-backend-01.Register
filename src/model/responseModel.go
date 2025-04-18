@@ -128,3 +128,12 @@ type AssignToEventResponse struct {
 		Message string `json:"message,omitempty" example:"user for the email address not found" doc:"Errors in assigning user to event"`
 	}
 }
+
+type AppendTeamInvitationResponse struct {
+	Status int
+
+	Body struct {
+		Status  string `json:"status" example:"appended" doc:"Status of appending team invitation"`
+		Message string `json:"message,omitempty" example:"user not found" doc:"Errors in appending invitation to user"`
+	}
+}

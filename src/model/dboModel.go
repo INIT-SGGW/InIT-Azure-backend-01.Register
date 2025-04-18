@@ -52,3 +52,15 @@ type Admin struct {
 	Verified          bool               `bson:"verified"`
 	AdminPermissions  []string           `bson:"admin_permissions,omitempty"`
 }
+
+type Notification struct {
+	ID        primitive.ObjectID `bson:"_id"`
+	CreatedAt time.Time          `bson:"created_at"`
+	UpdatedAt time.Time          `bson:"updated_at"`
+	UserId    primitive.ObjectID `bson:"userId"`
+	Type      string             `bson:"type"`
+	Status    string             `bson:"status"`
+	Service   string             `bson:"service"`
+	Event     *string            `bson:"event,omitempty"`
+	Args      map[string]string  `bson:"args,omitempty"`
+}

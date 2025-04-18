@@ -21,6 +21,7 @@ const (
 	USER_COLLECTION_NAME           string = "Users"
 	EMAIL_TEMPLATE_COLLECTION_NAME string = "Email-templates"
 	ADMINS_COLLECTION_NAME         string = "Admins"
+	NOTIFICATIONS_COLLECTION_NAME  string = "Notifications"
 )
 
 type MongoRepository struct {
@@ -38,6 +39,7 @@ type RegisterRepository interface {
 	AddUserEmail(ctx context.Context, id string, email string) (model.User, error)
 	AssignUserToEvent(ctx context.Context, id string, event string) error
 	CreateUserFromInvitation(ctx context.Context, user model.User, token string) (model.User, error)
+	AppendNotificationToUser(ctx context.Context, notification model.Notification) error
 }
 
 func NewRegisterRepository(connectionString, dbname string, logger *zap.Logger) MongoRepository {
@@ -359,4 +361,22 @@ func (repo MongoRepository) CreateUserFromInvitation(ctx context.Context, user m
 	}
 
 	return user, nil
+}
+
+func (repo MongoRepository) AppendNotificationToUser(ctx context.Context, notification model.Notification) error {
+	defer repo.logger.Sync()
+
+	repo.logger.Debug("In AppendNotificationToUser method")
+
+	coll := repo.client.Database(repo.database).Collection(NOTIFICATIONS_COLLECTION_NAME)
+
+	_, err := coll.InsertOne(ctx, notification)
+	if err != nil {
+		repo.logger.Error("Error inserting notification into database",
+			zap.String("database", repo.database),
+			zap.String("collection", NOTIFICATIONS_COLLECTION_NAME),
+			zap.Error(err))
+	}
+
+	return nil
 }

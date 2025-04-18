@@ -53,8 +53,8 @@ func main() {
 	})
 
 	api := createHumaApi("KN INIT Website Register API", "1.0.0", r)
-	addRoutes(api, *registerHandler)
-	addAdminRoutes(api, *adminHandler, config.ApiKey)
+	addRoutes(api, *registerHandler, config.ApiKey)
+	addAdminRoutes(api, *adminHandler, config.AdminApiKey)
 
 	http.ListenAndServe(fmt.Sprintf(":%s", config.ListenPort), r)
 
@@ -70,7 +70,7 @@ func createHumaApi(title, version string, r chi.Router) huma.API {
 	return api
 }
 
-func addRoutes(api huma.API, handler handler.RegisterHandler) {
+func addRoutes(api huma.API, handler handler.RegisterHandler, apiKey string) {
 
 	middleware := func(ctx huma.Context, next func(huma.Context)) {
 		// Read a cookie by name.
@@ -84,6 +84,19 @@ func addRoutes(api huma.API, handler handler.RegisterHandler) {
 
 		ctx = huma.WithValue(ctx, "jwt", sessionCookie.Value)
 		ctx.SetHeader("jwt", sessionCookie.Value)
+		next(ctx)
+	}
+
+	apiKeyMiddleware := func(ctx huma.Context, next func(huma.Context)) {
+		// Read a cookie by name.
+		providedKey := ctx.Header("INIT-API-KEY")
+
+		if providedKey != apiKey {
+			huma.WriteErr(api, ctx, http.StatusUnauthorized,
+				"the provided api key is incorrect", fmt.Errorf("Accessing from unauthorized source"),
+			)
+			return
+		}
 		next(ctx)
 	}
 
@@ -167,9 +180,18 @@ func addRoutes(api huma.API, handler handler.RegisterHandler) {
 		Summary:     "Create user from invitation",
 		Description: "Create user from invitation and add notification",
 	}, handler.HandleRegisterUserFromInvitationRequest)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "append-team-invitation",
+		Method:      http.MethodPost,
+		Path:        "/register/team/invitation",
+		Summary:     "Append team invitation",
+		Description: "Append team invitation to user, if user doesn't exist, create user from email",
+		Middlewares: huma.Middlewares{apiKeyMiddleware},
+	}, handler.HandleAppendTeamInvitationRequest)
 }
 
-func addAdminRoutes(api huma.API, handler handler.AdminHandler, apiKey string) {
+func addAdminRoutes(api huma.API, handler handler.AdminHandler, adminApiKey string) {
 
 	authMiddleware := func(ctx huma.Context, next func(huma.Context)) {
 		// Read a cookie by name.
@@ -189,8 +211,8 @@ func addAdminRoutes(api huma.API, handler handler.AdminHandler, apiKey string) {
 	apiKeyMiddleware := func(ctx huma.Context, next func(huma.Context)) {
 		// Read a cookie by name.
 		providedKey := ctx.Header("X-INIT-ADMIN-API-KEY")
-		print(providedKey + " " + apiKey)
-		if providedKey != apiKey {
+		print(providedKey + " " + adminApiKey)
+		if providedKey != adminApiKey {
 			huma.WriteErr(api, ctx, http.StatusUnauthorized,
 				"the provided api key is incorrect", fmt.Errorf("Not logged as admin"),
 			)
