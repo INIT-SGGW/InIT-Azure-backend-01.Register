@@ -20,6 +20,7 @@ type envConfig struct {
 	VerificationLinkHost string
 	JWTSecret            string
 	ApiKey               string
+	AdminApiKey          string
 }
 
 func NewEnvConfig() envConfig {
@@ -94,6 +95,11 @@ func NewEnvConfig() envConfig {
 	ApiKey, exist := os.LookupEnv("INIT_API_KEY")
 	if !exist {
 		err = errors.Join(err, errors.New("Missing environment variable INIT_API_KEY"))
+	}
+
+	AdminApiKey, exist := os.LookupEnv("INIT_ADMIN_API_KEY")
+	if !exist {
+		err = errors.Join(err, errors.New("Missing environment variable INIT_ADMIN_API_KEY"))
 
 	}
 
@@ -116,6 +122,7 @@ func NewEnvConfig() envConfig {
 		VerificationLinkHost: VerificationLinkHost,
 		JWTSecret:            JWTSecret,
 		ApiKey:               ApiKey,
+		AdminApiKey:          AdminApiKey,
 	}
 
 }
