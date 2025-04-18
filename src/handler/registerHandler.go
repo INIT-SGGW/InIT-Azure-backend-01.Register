@@ -82,7 +82,7 @@ func (han RegisterHandler) HandleRegisterUserFromInvitationRequest(ctx context.C
 	han.handler.logger.Debug("In HandleRegisterUserFromInvitationRequest method")
 
 	resp := model.RegisterUserResponse{}
-	userDbo, err := han.registerService.MapUserRequestToDBO(*&input.Body.RegisterUserBody, true)
+	userDbo, err := han.registerService.MapUserRequestToDBO(input.Body.RegisterUserBody, true)
 	if err != nil {
 		resp.Body.Error = err.Error()
 		resp.Body.Status = "Error in mapping to user to dboUser "
@@ -405,5 +405,79 @@ func (han RegisterHandler) HandleAssignToEventRequest(ctx context.Context, input
 	resp.Status = http.StatusOK
 	resp.Body.Status = "resend"
 
+	return &resp, nil
+}
+
+func (han RegisterHandler) HandleAppendTeamInvitationRequest(ctx context.Context, input *model.AppendTeamInvitationRequest) (*model.AppendTeamInvitationResponse, error) {
+	defer han.handler.logger.Sync()
+
+	han.handler.logger.Debug("In HandleAppendTeamInvitationRequest method")
+
+	resp := model.AppendTeamInvitationResponse{}
+
+	dbUser, err := han.registerService.GetUserByEmail(input.Body.Email, ctx)
+	if err != nil && err != mongo.ErrNoDocuments {
+		han.handler.logger.Error("Error retreiving user from database",
+			zap.String("email", input.Body.Email),
+		)
+
+		resp.Status = http.StatusInternalServerError
+		resp.Body.Status = "error retreiving user from databse"
+		resp.Body.Message = err.Error()
+
+		return &resp, err
+	}
+
+	if err == mongo.ErrNoDocuments {
+		// creating new user
+		han.handler.logger.Info("User not found in database, creating new temp user",
+			zap.String("email", input.Body.Email),
+		)
+		dbUser, err = han.registerService.CreateNewTempUser(ctx, input.Body.Email)
+		if err != nil {
+			han.handler.logger.Error("Error creating new temp user",
+				zap.String("email", input.Body.Email),
+				zap.Error(err))
+
+			resp.Status = http.StatusInternalServerError
+			resp.Body.Status = "error creating new temp user"
+			resp.Body.Message = err.Error()
+
+			return &resp, err
+		}
+		han.handler.logger.Info("Sucesfully created new temp user",
+			zap.String("email", input.Body.Email),
+		)
+
+		err = han.emailService.SendCreateUserEmail(ctx, dbUser)
+		if err != nil {
+			han.handler.logger.Error("Error sending an email",
+				zap.String("email", dbUser.Emails[0]),
+				zap.Error(err))
+
+			resp.Status = http.StatusInternalServerError
+			resp.Body.Status = "error sending email"
+			resp.Body.Message = err.Error()
+
+			return &resp, err
+		}
+	}
+
+	args := map[string]string{
+		"teamId":   input.Body.TeamId,
+		"teamName": input.Body.TeamName,
+	}
+
+	err = han.registerService.AppendNotificationToUser(ctx, dbUser.ID, "ha_25_team_invite", "ha", nil, args)
+	if err != nil {
+		han.handler.logger.Error("Error appending invitation to user",
+			zap.String("teamId", input.Body.TeamId),
+			zap.String("userId", dbUser.ID.String()),
+			zap.Error(err))
+		return &resp, err
+	}
+
+	resp.Status = http.StatusOK
+	resp.Body.Status = "appended"
 	return &resp, nil
 }

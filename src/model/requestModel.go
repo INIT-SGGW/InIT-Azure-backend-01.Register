@@ -136,3 +136,13 @@ type AssignToEventRequest struct {
 		Event string `json:"event" example:"ha25" doc:"Event name to assign user"`
 	}
 }
+
+type AppendTeamInvitationRequest struct {
+	ApiKey string `header:"INIT-API-KEY"`
+
+	Body struct {
+		Email    string `json:"email" example:"john.doe@example.com" doc:"User email, who will be invited to the team"`
+		TeamId   string `json:"teamId" example:"67c0df2b24397b2e860be392" doc:"Team id to which user will be invited"`
+		TeamName string `json:"teamName" example:"Team name" doc:"Team name to which user will be invited"`
+	}
+}

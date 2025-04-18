@@ -27,9 +27,13 @@ type UserService interface {
 	VerifyEmailByToken(ctx context.Context, email, verificationToken string) error
 	AuthenticateUser(service string, email, password string, ctx context.Context) (bool, model.User, error)
 	GetUserById(id string, ctx context.Context) (model.User, error)
+	GetUserByEmail(email string, ctx context.Context) (model.User, error)
 	AddUserEmail(ctx context.Context, id string, email string) (model.User, error)
 	AssignUserToEvent(ctx context.Context, id string, event string) error
 	CreateUserFromInvitation(ctx context.Context, user model.User, token string) (model.User, error)
+	CreateNewTempUser(ctx context.Context, email string) (model.User, error)
+	createTempUserModel(email string) model.User
+	AppendNotificationToUser(ctx context.Context, userId primitive.ObjectID, notificationType string, service string, event *string, args map[string]string) error
 }
 
 func NewRegisterService(logger *zap.Logger, repository repository.RegisterRepository) RegisterService {
@@ -56,6 +60,30 @@ func (serv RegisterService) CreateNewUser(ctx context.Context, dboUser model.Use
 	}
 	return nil
 
+}
+
+func (serv RegisterService) CreateNewTempUser(ctx context.Context, email string) (model.User, error) {
+	defer serv.service.logger.Sync()
+
+	serv.service.logger.Debug("In CreateNewUser method")
+
+	tempUser := serv.createTempUserModel(email)
+
+	err := serv.repository.CreateUserInDB(tempUser, ctx)
+	if mongo.IsDuplicateKeyError(err) {
+		serv.service.logger.Error("User with following email already exists",
+			zap.Error(err))
+		return model.User{}, err
+	}
+	if err != nil {
+		serv.service.logger.Error("Error inserting data to database",
+			zap.Error(err))
+		return model.User{}, err
+	}
+
+	serv.service.logger.Info("Temp user created")
+
+	return tempUser, nil
 }
 
 func (serv RegisterService) validateRegisterBody(request model.RegisterUserBody) error {
@@ -159,6 +187,28 @@ func (serv RegisterService) createUserModel(request model.RegisterUserBody, veri
 	}
 
 	return modelUser, nil
+}
+
+func (serv RegisterService) createTempUserModel(email string) model.User {
+	defer serv.service.logger.Sync()
+
+	uniqueVerificationToken := uuid.NewString()
+
+	modelUser := model.User{
+		ID:                primitive.NewObjectID(),
+		CreatedAt:         time.Now(),
+		UpdatedAt:         time.Now(),
+		FirstName:         "",
+		LastName:          "",
+		Password:          "",
+		Emails:            []string{email},
+		DateOfBirth:       time.Now(),
+		Agreement:         false,
+		Verified:          false,
+		VerificationToken: uniqueVerificationToken,
+	}
+
+	return modelUser
 }
 
 func (serv RegisterService) MapUserRequestToDBO(request model.RegisterUserBody, verified bool) (model.User, error) {
@@ -269,6 +319,26 @@ func (serv RegisterService) GetUserById(id string, ctx context.Context) (model.U
 	return userDbo, nil
 }
 
+func (serv RegisterService) GetUserByEmail(email string, ctx context.Context) (model.User, error) {
+	defer serv.service.logger.Sync()
+
+	userDbo, err := serv.repository.GetUserByEmail(ctx, email)
+	if err == mongo.ErrNilDocument {
+		serv.service.logger.Error("Cannot find the user in database",
+			zap.Error(err))
+		return model.User{}, err
+	}
+	if err != nil {
+		serv.service.logger.Error("Error retreiving user from database",
+			zap.Error(err))
+		return model.User{}, err
+	}
+	serv.service.logger.Info("Succesfully get user from database",
+		zap.String("user email", email))
+
+	return userDbo, nil
+}
+
 func (serv RegisterService) verifySggwEmail(email string) bool {
 	defer serv.service.logger.Sync()
 
@@ -343,4 +413,30 @@ func (serv RegisterService) CreateUserFromInvitation(ctx context.Context, user m
 		return model.User{}, err
 	}
 	return user, nil
+}
+
+func (serv RegisterService) AppendNotificationToUser(ctx context.Context, userId primitive.ObjectID, notificationType string, service string, event *string, args map[string]string) error {
+	defer serv.service.logger.Sync()
+
+	serv.service.logger.Debug("In AppendNotificationToUser method")
+
+	notification := model.Notification{
+		ID:        primitive.NewObjectID(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		UserId:    userId,
+		Type:      notificationType,
+		Status:    "not-read",
+		Service:   service,
+		Event:     event,
+		Args:      args,
+	}
+
+	err := serv.repository.AppendNotificationToUser(ctx, notification)
+	if err != nil {
+		serv.service.logger.Error("Error appending notification to user",
+			zap.Error(err))
+	}
+
+	return err
 }
