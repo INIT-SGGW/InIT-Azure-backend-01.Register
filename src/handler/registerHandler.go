@@ -216,13 +216,13 @@ func (han RegisterHandler) HandleLogoutRequest(ctx context.Context, input *model
 	return &resp, nil
 }
 
-func (han RegisterHandler) HandleGetUserRequest(ctx context.Context, input *model.GetUserRequest) (*model.GetUserResponse, error) {
+func (han RegisterHandler) HandleGetUserByIdRequest(ctx context.Context, input *model.GetUserByIdRequest) (*model.GetUserByIdResponse, error) {
 	defer han.handler.logger.Sync()
 
-	han.handler.logger.Debug("In HandleGetUserRequest method")
+	han.handler.logger.Debug("In HandleGetUserByIdRequest method")
 
 	idFromInput := input.Id
-	resp := model.GetUserResponse{}
+	resp := model.GetUserByIdResponse{}
 	resp.Status = http.StatusUnauthorized
 	resp.Body.Id = "empty"
 	resp.Body.FirstName = "empty"

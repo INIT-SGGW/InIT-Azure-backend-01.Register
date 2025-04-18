@@ -42,7 +42,7 @@ type LogoutResponse struct {
 	}
 }
 
-type GetUserResponse struct {
+type GetUserByIdResponse struct {
 	Status int
 
 	Body struct {
