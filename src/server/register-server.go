@@ -145,7 +145,16 @@ func addRoutes(api huma.API, handler handler.RegisterHandler, apiKey string) {
 		Summary:     "Get user by id",
 		Description: "Get user data from database",
 		Middlewares: huma.Middlewares{middleware},
-	}, handler.HandleGetUserRequest)
+	}, handler.HandleGetUserByIdRequest)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "get-user",
+		Method:      http.MethodGet,
+		Path:        "/register/user/email/{email}",
+		Summary:     "Get user by email",
+		Description: "Get user data from database",
+		Middlewares: huma.Middlewares{middleware},
+	}, handler.HandleGetUserByEmailRequest)
 
 	huma.Register(api, huma.Operation{
 		OperationID: "resend-user-verification",

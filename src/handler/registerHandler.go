@@ -285,6 +285,78 @@ func (han RegisterHandler) HandleGetUserByIdRequest(ctx context.Context, input *
 	return &resp, nil
 }
 
+func (han RegisterHandler) HandleGetUserByEmailRequest(ctx context.Context, input *model.GetUserByEmailRequest) (*model.GetUserByEmailResponse, error) {
+	defer han.handler.logger.Sync()
+
+	han.handler.logger.Debug("In HandleGetUserByEmailRequest method")
+
+	emailFromInput := input.Email
+	resp := model.GetUserByEmailResponse{}
+	resp.Status = http.StatusUnauthorized
+	resp.Body.Id = "empty"
+	resp.Body.FirstName = "empty"
+	resp.Body.LastName = "empty"
+	resp.Body.Emails = []string{"empty"}
+	resp.Body.DateOfBirth = time.Time{}
+	resp.Body.IsVerified = false
+	resp.Body.IsAggrementFulfielled = false
+
+	token, err := jwtauth.VerifyToken(han.authToken, input.JwtCookie.Value)
+	if err != nil {
+		han.handler.logger.Error("Error verifying token",
+			zap.Error(err))
+
+		return &resp, nil
+	}
+	claims := token.PrivateClaims()
+
+	email, exist := claims["email"]
+	if !exist {
+		han.handler.logger.Error("The email field is not present in the token")
+		return &resp, nil
+
+	}
+
+	if email != emailFromInput {
+		han.handler.logger.Error("The email field do not match with the one in request")
+
+		return &resp, nil
+	}
+	han.handler.logger.Info("User token and id sucesfully verified")
+
+	userDbo, err := han.registerService.GetUserByEmail(emailFromInput, ctx)
+	if err != nil {
+		han.handler.logger.Error("Error retreiving user from database",
+			zap.Error(err))
+
+		resp.Status = http.StatusInternalServerError
+		return &resp, nil
+	}
+	han.handler.logger.Info("User sucesfully retreive from database")
+
+	resp.Body.Id = userDbo.ID.String()
+	resp.Body.FirstName = userDbo.FirstName
+	resp.Body.LastName = userDbo.LastName
+	resp.Body.Emails = userDbo.Emails
+	resp.Body.DateOfBirth = userDbo.DateOfBirth
+	resp.Body.IsAggrementFulfielled = userDbo.Agreement
+	resp.Body.IsVerified = userDbo.Verified
+	resp.Body.AcademicYear = userDbo.AcademicYear
+	resp.Body.Faculty = userDbo.Faculty
+	resp.Body.Degree = userDbo.Degree
+	resp.Body.Occupation = userDbo.Occupation
+	resp.Body.DietPreference = userDbo.DietPreference
+	resp.Body.StudentIndex = userDbo.StudentIndex
+
+	han.handler.logger.Info("User sucesfully mapped to response",
+		zap.String("userId", userDbo.ID.String()),
+	)
+
+	resp.Status = http.StatusOK
+
+	return &resp, nil
+}
+
 func (han RegisterHandler) HandleResendEmailRequest(ctx context.Context, input *model.ResendEmailRequest) (*model.ResendEmailResponse, error) {
 	defer han.handler.logger.Sync()
 
