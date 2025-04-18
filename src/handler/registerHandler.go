@@ -82,7 +82,7 @@ func (han RegisterHandler) HandleRegisterUserFromInvitationRequest(ctx context.C
 	han.handler.logger.Debug("In HandleRegisterUserFromInvitationRequest method")
 
 	resp := model.RegisterUserResponse{}
-	userDbo, err := han.registerService.MapUserRequestToDBO(*&input.Body.RegisterUserBody, true)
+	userDbo, err := han.registerService.MapUserRequestToDBO(input.Body.RegisterUserBody, true)
 	if err != nil {
 		resp.Body.Error = err.Error()
 		resp.Body.Status = "Error in mapping to user to dboUser "

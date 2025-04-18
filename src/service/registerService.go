@@ -204,7 +204,7 @@ func (serv RegisterService) createTempUserModel(email string) model.User {
 		Emails:            []string{email},
 		DateOfBirth:       time.Now(),
 		Agreement:         false,
-		Verified:          true,
+		Verified:          false,
 		VerificationToken: uniqueVerificationToken,
 	}
 
