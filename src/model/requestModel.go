@@ -54,9 +54,14 @@ type LoginUserRequest struct {
 
 type LogoutUserRequest struct{}
 
-type GetUserRequest struct {
+type GetUserByIdRequest struct {
 	JwtCookie http.Cookie `cookie:"jwt"`
 	Id        string      `path:"id" example:"67c0df2b24397b2e860be392" doc:"requested user id"`
+}
+
+type GetUserByEmailRequest struct {
+	JwtCookie http.Cookie `cookie:"jwt"`
+	Email     string      `path:"email" example:"john.doe@example.com" doc:"requested user email"`
 }
 
 type UpdateUserRequest struct {

@@ -80,8 +80,22 @@ func (han RegisterHandler) HandleRegisterUserFromInvitationRequest(ctx context.C
 	defer han.handler.logger.Sync()
 
 	han.handler.logger.Debug("In HandleRegisterUserFromInvitationRequest method")
-
 	resp := model.RegisterUserResponse{}
+
+	err := han.registerService.VerifyEmailByToken(ctx, input.Body.Email, input.Body.VerificationToken)
+	if err == mongo.ErrNoDocuments {
+		resp.Body.Error = err.Error()
+		resp.Body.Status = "mail and token do not match"
+		resp.Status = http.StatusUnauthorized
+		return &resp, nil
+	}
+	if err != nil {
+		resp.Body.Error = err.Error()
+		resp.Body.Status = "internal error"
+		resp.Status = http.StatusInternalServerError
+		return &resp, nil
+	}
+
 	userDbo, err := han.registerService.MapUserRequestToDBO(input.Body.RegisterUserBody, true)
 	if err != nil {
 		resp.Body.Error = err.Error()
@@ -202,13 +216,13 @@ func (han RegisterHandler) HandleLogoutRequest(ctx context.Context, input *model
 	return &resp, nil
 }
 
-func (han RegisterHandler) HandleGetUserRequest(ctx context.Context, input *model.GetUserRequest) (*model.GetUserResponse, error) {
+func (han RegisterHandler) HandleGetUserByIdRequest(ctx context.Context, input *model.GetUserByIdRequest) (*model.GetUserByIdResponse, error) {
 	defer han.handler.logger.Sync()
 
-	han.handler.logger.Debug("In HandleGetUserRequest method")
+	han.handler.logger.Debug("In HandleGetUserByIdRequest method")
 
 	idFromInput := input.Id
-	resp := model.GetUserResponse{}
+	resp := model.GetUserByIdResponse{}
 	resp.Status = http.StatusUnauthorized
 	resp.Body.Id = "empty"
 	resp.Body.FirstName = "empty"
@@ -261,6 +275,78 @@ func (han RegisterHandler) HandleGetUserRequest(ctx context.Context, input *mode
 	resp.Body.AcademicYear = userDbo.AcademicYear
 	resp.Body.Faculty = userDbo.Faculty
 	resp.Body.Degree = userDbo.Degree
+
+	han.handler.logger.Info("User sucesfully mapped to response",
+		zap.String("userId", userDbo.ID.String()),
+	)
+
+	resp.Status = http.StatusOK
+
+	return &resp, nil
+}
+
+func (han RegisterHandler) HandleGetUserByEmailRequest(ctx context.Context, input *model.GetUserByEmailRequest) (*model.GetUserByEmailResponse, error) {
+	defer han.handler.logger.Sync()
+
+	han.handler.logger.Debug("In HandleGetUserByEmailRequest method")
+
+	emailFromInput := input.Email
+	resp := model.GetUserByEmailResponse{}
+	resp.Status = http.StatusUnauthorized
+	resp.Body.Id = "empty"
+	resp.Body.FirstName = "empty"
+	resp.Body.LastName = "empty"
+	resp.Body.Emails = []string{"empty"}
+	resp.Body.DateOfBirth = time.Time{}
+	resp.Body.IsVerified = false
+	resp.Body.IsAggrementFulfielled = false
+
+	token, err := jwtauth.VerifyToken(han.authToken, input.JwtCookie.Value)
+	if err != nil {
+		han.handler.logger.Error("Error verifying token",
+			zap.Error(err))
+
+		return &resp, nil
+	}
+	claims := token.PrivateClaims()
+
+	email, exist := claims["email"]
+	if !exist {
+		han.handler.logger.Error("The email field is not present in the token")
+		return &resp, nil
+
+	}
+
+	if email != emailFromInput {
+		han.handler.logger.Error("The email field do not match with the one in request")
+
+		return &resp, nil
+	}
+	han.handler.logger.Info("User token and id sucesfully verified")
+
+	userDbo, err := han.registerService.GetUserByEmail(emailFromInput, ctx)
+	if err != nil {
+		han.handler.logger.Error("Error retreiving user from database",
+			zap.Error(err))
+
+		resp.Status = http.StatusInternalServerError
+		return &resp, nil
+	}
+	han.handler.logger.Info("User sucesfully retreive from database")
+
+	resp.Body.Id = userDbo.ID.String()
+	resp.Body.FirstName = userDbo.FirstName
+	resp.Body.LastName = userDbo.LastName
+	resp.Body.Emails = userDbo.Emails
+	resp.Body.DateOfBirth = userDbo.DateOfBirth
+	resp.Body.IsAggrementFulfielled = userDbo.Agreement
+	resp.Body.IsVerified = userDbo.Verified
+	resp.Body.AcademicYear = userDbo.AcademicYear
+	resp.Body.Faculty = userDbo.Faculty
+	resp.Body.Degree = userDbo.Degree
+	resp.Body.Occupation = userDbo.Occupation
+	resp.Body.DietPreference = userDbo.DietPreference
+	resp.Body.StudentIndex = userDbo.StudentIndex
 
 	han.handler.logger.Info("User sucesfully mapped to response",
 		zap.String("userId", userDbo.ID.String()),

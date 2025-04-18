@@ -330,6 +330,7 @@ func (repo MongoRepository) CreateUserFromInvitation(ctx context.Context, user m
 	update := bson.D{
 		{Key: "$set", Value: bson.D{
 			{Key: "first_name", Value: user.FirstName},
+			{Key: "password", Value: user.Password},
 			{Key: "last_name", Value: user.LastName},
 			{Key: "academic_year", Value: user.AcademicYear},
 			{Key: "faculity", Value: user.Faculty},
