@@ -80,8 +80,22 @@ func (han RegisterHandler) HandleRegisterUserFromInvitationRequest(ctx context.C
 	defer han.handler.logger.Sync()
 
 	han.handler.logger.Debug("In HandleRegisterUserFromInvitationRequest method")
-
 	resp := model.RegisterUserResponse{}
+
+	err := han.registerService.VerifyEmailByToken(ctx, input.Body.Email, input.Body.VerificationToken)
+	if err == mongo.ErrNoDocuments {
+		resp.Body.Error = err.Error()
+		resp.Body.Status = "mail and token do not match"
+		resp.Status = http.StatusUnauthorized
+		return &resp, nil
+	}
+	if err != nil {
+		resp.Body.Error = err.Error()
+		resp.Body.Status = "internal error"
+		resp.Status = http.StatusInternalServerError
+		return &resp, nil
+	}
+
 	userDbo, err := han.registerService.MapUserRequestToDBO(input.Body.RegisterUserBody, true)
 	if err != nil {
 		resp.Body.Error = err.Error()
