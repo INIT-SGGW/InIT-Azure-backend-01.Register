@@ -129,7 +129,7 @@ func (han RegisterHandler) HandleVerificationUserRequest(ctx context.Context, in
 	if err == mongo.ErrNoDocuments {
 		resp.Body.Error = err.Error()
 		resp.Body.Status = "mail and token do not match"
-		resp.Status = http.StatusUnauthorized
+		resp.Status = http.StatusBadRequest
 		return &resp, nil
 	}
 	if err != nil {
