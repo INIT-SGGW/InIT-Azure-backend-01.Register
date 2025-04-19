@@ -617,6 +617,7 @@ func (han RegisterHandler) HandleGetUserNotificationsRequest(ctx context.Context
 	var responseNotifications []model.NotificationResponse
 	for _, dbNoti := range dbNotifications {
 		responseNotifications = append(responseNotifications, model.NotificationResponse{
+			ID:      dbNoti.ID.Hex(),
 			Type:    dbNoti.Type,
 			Status:  dbNoti.Status,
 			Service: dbNoti.Service,
