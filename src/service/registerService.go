@@ -34,6 +34,7 @@ type UserService interface {
 	CreateNewTempUser(ctx context.Context, email string) (model.User, error)
 	createTempUserModel(email string) model.User
 	AppendNotificationToUser(ctx context.Context, userId primitive.ObjectID, notificationType string, service string, event *string, args map[string]string) error
+	GetUserNotifications(ctx context.Context, userId string, service *string) ([]model.Notification, error)
 }
 
 func NewRegisterService(logger *zap.Logger, repository repository.RegisterRepository) RegisterService {
@@ -439,4 +440,19 @@ func (serv RegisterService) AppendNotificationToUser(ctx context.Context, userId
 	}
 
 	return err
+}
+
+func (serv RegisterService) GetUserNotifications(ctx context.Context, userId string, service *string) ([]model.Notification, error) {
+	defer serv.service.logger.Sync()
+
+	serv.service.logger.Debug("In GetUserNotifications method")
+
+	notifications, err := serv.repository.GetUserNotifications(ctx, userId, service)
+	if err != nil {
+		serv.service.logger.Error("Error getting user notifications",
+			zap.Error(err))
+		return []model.Notification{}, err
+	}
+
+	return notifications, nil
 }

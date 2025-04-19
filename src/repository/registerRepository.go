@@ -40,6 +40,7 @@ type RegisterRepository interface {
 	AssignUserToEvent(ctx context.Context, id string, event string) error
 	CreateUserFromInvitation(ctx context.Context, user model.User, token string) (model.User, error)
 	AppendNotificationToUser(ctx context.Context, notification model.Notification) error
+	GetUserNotifications(ctx context.Context, userId string, service *string) ([]model.Notification, error)
 }
 
 func NewRegisterRepository(connectionString, dbname string, logger *zap.Logger) MongoRepository {
@@ -380,4 +381,60 @@ func (repo MongoRepository) AppendNotificationToUser(ctx context.Context, notifi
 	}
 
 	return nil
+}
+
+func (repo MongoRepository) GetUserNotifications(ctx context.Context, userId string, service *string) ([]model.Notification, error) {
+	defer repo.logger.Sync()
+
+	repo.logger.Debug("In GetUserNotifications method")
+
+	coll := repo.client.Database(repo.database).Collection(NOTIFICATIONS_COLLECTION_NAME)
+
+	queryId, err := primitive.ObjectIDFromHex(userId)
+	if err != nil {
+		repo.logger.Error("Cannot parse id to ObjectId",
+			zap.String("database", repo.database),
+			zap.String("collection", NOTIFICATIONS_COLLECTION_NAME),
+			zap.String("id", userId),
+			zap.Error(err))
+	}
+
+	filter := bson.D{{Key: "userId", Value: queryId}}
+	if *service != "" {
+		filter = append(filter, bson.E{Key: "service", Value: *service})
+	}
+
+	cursor, err := coll.Find(ctx, filter)
+	if err != nil {
+		repo.logger.Error("Error retreiving notifications from database",
+			zap.String("database", repo.database),
+			zap.String("collection", NOTIFICATIONS_COLLECTION_NAME),
+			zap.Error(err))
+		return []model.Notification{}, err
+	}
+	defer cursor.Close(ctx)
+	var notifications []model.Notification
+
+	for cursor.Next(ctx) {
+		var notification model.Notification
+		if err := cursor.Decode(&notification); err != nil {
+			repo.logger.Error("Error decoding notification",
+				zap.String("database", repo.database),
+				zap.String("collection", NOTIFICATIONS_COLLECTION_NAME),
+				zap.Error(err))
+			return []model.Notification{}, err
+		}
+		notifications = append(notifications, notification)
+	}
+	if err := cursor.Err(); err != nil {
+		repo.logger.Error("Error iterating over notifications",
+			zap.String("database", repo.database),
+			zap.String("collection", NOTIFICATIONS_COLLECTION_NAME),
+			zap.Error(err))
+		return []model.Notification{}, err
+	}
+
+	repo.logger.Info("Sucesfully retreive notifications from database")
+
+	return notifications, nil
 }

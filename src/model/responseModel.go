@@ -157,3 +157,22 @@ type AppendTeamInvitationResponse struct {
 		Message string `json:"message,omitempty" example:"user not found" doc:"Errors in appending invitation to user"`
 	}
 }
+
+type NotificationResponse struct {
+	ID      string            `json:"_id" example:"67c0df2b24397b2e860be392" doc:"Unique notification identifier"`
+	Type    string            `json:"type" example:"ha_team_invite" doc:"Type of notification"`
+	Status  string            `json:"status" example:"not-read" doc:"Status of notification"`
+	Service string            `json:"service" example:"ha" doc:"Name of a service, which notification is assigned to"`
+	Event   *string           `json:"event,omitempty" example:"ha_25" doc:"Event name, which notification is assigned to"`
+	Args    map[string]string `json:"args,omitempty" example:"{\"teamId\":\"67c0df2b24397b2e860be392\"}" doc:"Arguments for notification, which are used to create notification message"`
+}
+
+type GetUserNotificationsResponse struct {
+	Status int
+
+	Body struct {
+		Notifications []NotificationResponse `json:"notifications" example:"[{\"_id\":\"67c0df2b24397b2e860be392\",\"type\":\"ha_team_invite\",\"status\":\"not-read\",\"service\":\"ha\",\"event\":\"ha_25\",\"args\":{\"teamId\":\"67c0df2b24397b2e860be392\"}}]" doc:"List of notifications for user"`
+		Status        string                 `json:"status" example:"success" doc:"Status of getting notifications"`
+		Message       string                 `json:"message,omitempty" example:"user not found" doc:"Errors in getting notifications"`
+	}
+}

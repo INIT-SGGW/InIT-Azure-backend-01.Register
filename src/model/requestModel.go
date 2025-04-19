@@ -138,7 +138,7 @@ type AssignToEventRequest struct {
 	JwtCookie http.Cookie `cookie:"jwt"`
 
 	Body struct {
-		Event string `json:"event" example:"ha25" doc:"Event name to assign user"`
+		Event string `json:"event" example:"ha_25" doc:"Event name to assign user"`
 	}
 }
 
@@ -149,5 +149,14 @@ type AppendTeamInvitationRequest struct {
 		Email    string `json:"email" example:"john.doe@example.com" doc:"User email, who will be invited to the team"`
 		TeamId   string `json:"teamId" example:"67c0df2b24397b2e860be392" doc:"Team id to which user will be invited"`
 		TeamName string `json:"teamName" example:"Team name" doc:"Team name to which user will be invited"`
+	}
+}
+
+type GetUserNotificationsRequest struct {
+	JwtCookie http.Cookie `cookie:"jwt"`
+	Id        string      `path:"id" example:"67c0df2b24397b2e860be392" doc:"requested user id"`
+
+	Body struct {
+		Service string `json:"service,omitempty" example:"ha" doc:"Name of a service, which notifications user is trying to get. If not provided, all notifications are returned"`
 	}
 }
