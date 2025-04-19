@@ -66,7 +66,7 @@ func (srv EmailService) SendUserVerificationEmail(ctx context.Context, service s
 		},
 		"ha": {
 			Domain:        srv.HADomain,
-			VerifyURLPath: "/rejestracja/email/weryfikcja",
+			VerifyURLPath: "/rejestracja/email/weryfikacja",
 			TemplateName:  "ha_account_verification",
 		},
 	}
