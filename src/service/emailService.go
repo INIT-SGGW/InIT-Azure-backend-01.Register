@@ -10,6 +10,7 @@ import (
 	"html/template"
 	"net/url"
 	"strconv"
+	textTemplate "text/template"
 
 	"go.mongodb.org/mongo-driver/mongo"
 
@@ -102,11 +103,12 @@ func (srv EmailService) SendUserVerificationEmail(ctx context.Context, service s
 	params.Add("token", user.VerificationToken)
 	linkUrl.RawQuery += params.Encode()
 
+	link := linkUrl.String()
 	templUser := model.UserVerificationEmailTemplateModel{
 		Sender:            srv.emailSender,
 		VerificationToken: user.VerificationToken,
 		Recipients:        user.Emails,
-		VerificationLink:  linkUrl.String(),
+		VerificationLink:  template.URL(link),
 	}
 
 	email, err := srv.fillTemplate(emailTmpl, templUser)
@@ -119,7 +121,6 @@ func (srv EmailService) SendUserVerificationEmail(ctx context.Context, service s
 
 	port, _ := strconv.Atoi(srv.emailPort)
 	dialer := gomail.NewDialer(srv.emailHost, port, srv.user, srv.password)
-
 	err = dialer.DialAndSend(email)
 	if err != nil {
 		srv.service.logger.Error("Error sending email",
@@ -164,11 +165,12 @@ func (srv EmailService) SendCreateUserEmail(ctx context.Context, user model.User
 	params.Add("token", user.VerificationToken)
 	linkUrl.RawQuery += params.Encode()
 
+	link := linkUrl.String()
 	templUser := model.UserVerificationEmailTemplateModel{
 		Sender:            srv.emailSender,
 		VerificationToken: user.VerificationToken,
 		Recipients:        user.Emails,
-		VerificationLink:  linkUrl.String(),
+		VerificationLink:  template.URL(link),
 	}
 
 	email, err := srv.fillTemplate(emailTmpl, templUser)
@@ -226,11 +228,12 @@ func (srv EmailService) SendEmailVerificationEmail(ctx context.Context, user mod
 
 	emailList := []string{email}
 
+	link := linkUrl.String()
 	templUser := model.UserVerificationEmailTemplateModel{
 		Sender:            srv.emailSender,
 		VerificationToken: user.VerificationToken,
 		Recipients:        emailList,
-		VerificationLink:  linkUrl.String(),
+		VerificationLink:  template.URL(link),
 	}
 
 	message, err := srv.fillTemplate(emailTmpl, templUser)
@@ -331,7 +334,7 @@ func (srv EmailService) fillTemplate(emailTmpl model.EmailTemplate, templModel m
 	message.SetBody("text/html", buf.String())
 
 	textTmplName := fmt.Sprintf("%s_text", emailTmpl.TemplateName)
-	textTemplate, err := template.New(textTmplName).Parse(emailTmpl.TemplateAlternateBody)
+	textTemplate, err := textTemplate.New(textTmplName).Parse(emailTmpl.TemplateAlternateBody)
 	if err != nil {
 		srv.service.logger.Error("Error parsing template headers",
 			zap.String("templateName", htmlTmplName),
@@ -382,11 +385,12 @@ func (srv EmailService) SendAdminVerificationEmail(ctx context.Context, admin mo
 	linkUrl.RawQuery += params.Encode()
 
 	// we can use the same template as for user verification
+	link := linkUrl.String()
 	templUser := model.UserVerificationEmailTemplateModel{
 		Sender:            srv.emailSender,
 		VerificationToken: admin.VerificationToken,
 		Recipients:        []string{admin.Email},
-		VerificationLink:  linkUrl.String(),
+		VerificationLink:  template.URL(link),
 	}
 
 	email, err := srv.fillTemplate(emailTmpl, templUser)
