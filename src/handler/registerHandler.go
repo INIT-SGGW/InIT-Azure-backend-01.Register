@@ -554,7 +554,7 @@ func (han RegisterHandler) HandleAppendTeamInvitationRequest(ctx context.Context
 		"teamName": input.Body.TeamName,
 	}
 
-	err = han.registerService.AppendNotificationToUser(ctx, dbUser.ID, "ha_25_team_invite", "ha", nil, args)
+	err = han.registerService.AppendNotificationToUser(ctx, dbUser.ID, "ha_team_invite", "ha", nil, args)
 	if err != nil {
 		han.handler.logger.Error("Error appending invitation to user",
 			zap.String("teamId", input.Body.TeamId),
@@ -565,5 +565,70 @@ func (han RegisterHandler) HandleAppendTeamInvitationRequest(ctx context.Context
 
 	resp.Status = http.StatusOK
 	resp.Body.Status = "appended"
+	return &resp, nil
+}
+
+func (han RegisterHandler) HandleGetUserNotificationsRequest(ctx context.Context, input *model.GetUserNotificationsRequest) (*model.GetUserNotificationsResponse, error) {
+	defer han.handler.logger.Sync()
+
+	han.handler.logger.Debug("In HandleGetUserNotificationsRequest method")
+
+	resp := model.GetUserNotificationsResponse{}
+
+	token, err := jwtauth.VerifyToken(han.authToken, input.JwtCookie.Value)
+	if err != nil {
+		han.handler.logger.Error("Error verifying token",
+			zap.Error(err))
+
+		return &resp, err
+	}
+	claims := token.PrivateClaims()
+
+	id, exist := claims["id"]
+	if !exist {
+		han.handler.logger.Error("The id field is not present in the token")
+
+		resp.Status = http.StatusInternalServerError
+		resp.Body.Status = "internal server error"
+		resp.Body.Message = "No user id in token"
+		return &resp, nil
+	}
+
+	if id.(string) != input.Id {
+		han.handler.logger.Error("The id field do not match with the one in request")
+
+		resp.Status = http.StatusForbidden
+		resp.Body.Status = "user can't access other users notifications"
+		resp.Body.Message = "The id field do not match with the one in request"
+		return &resp, nil
+	}
+
+	dbNotifications, err := han.registerService.GetUserNotifications(ctx, input.Id, &input.Body.Service)
+	if err != nil {
+		han.handler.logger.Error("Error retreiving user notifications from database",
+			zap.String("userId", input.Id),
+			zap.Error(err))
+		resp.Status = http.StatusInternalServerError
+		resp.Body.Status = "error retreiving user notifications from databse"
+		resp.Body.Message = err.Error()
+		return &resp, err
+	}
+
+	var responseNotifications []model.NotificationResponse
+	for _, dbNoti := range dbNotifications {
+		responseNotifications = append(responseNotifications, model.NotificationResponse{
+			Type:    dbNoti.Type,
+			Status:  dbNoti.Status,
+			Service: dbNoti.Service,
+			Event:   dbNoti.Event,
+			Args:    dbNoti.Args,
+		})
+	}
+
+	han.handler.logger.Info("Sucesfully mapped user notifications to response")
+
+	resp.Body.Notifications = responseNotifications
+	resp.Status = http.StatusOK
+
 	return &resp, nil
 }

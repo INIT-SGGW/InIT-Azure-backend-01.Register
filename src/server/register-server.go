@@ -198,6 +198,15 @@ func addRoutes(api huma.API, handler handler.RegisterHandler, apiKey string) {
 		Description: "Append team invitation to user, if user doesn't exist, create user from email",
 		Middlewares: huma.Middlewares{apiKeyMiddleware},
 	}, handler.HandleAppendTeamInvitationRequest)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "get-notifications",
+		Method:      http.MethodGet,
+		Path:        "/register/user/notifications/{id}",
+		Summary:     "Get notfications",
+		Description: "Get notfications for user, based on service. If service not specified, all notifications are returned",
+		Middlewares: huma.Middlewares{middleware},
+	}, handler.HandleGetUserNotificationsRequest)
 }
 
 func addAdminRoutes(api huma.API, handler handler.AdminHandler, adminApiKey string) {
