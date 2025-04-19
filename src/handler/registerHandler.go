@@ -563,6 +563,7 @@ func (han RegisterHandler) HandleAppendTeamInvitationRequest(ctx context.Context
 		return &resp, err
 	}
 
+	resp.Body.UserId = dbUser.ID.Hex()
 	resp.Status = http.StatusOK
 	resp.Body.Status = "appended"
 	return &resp, nil

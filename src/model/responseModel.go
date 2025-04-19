@@ -153,6 +153,7 @@ type AppendTeamInvitationResponse struct {
 	Status int
 
 	Body struct {
+		UserId  string `json:"userId" example:"67c0df2b24397b2e860be392" doc:"Id of a user to whom the invitation is assigned"`
 		Status  string `json:"status" example:"appended" doc:"Status of appending team invitation"`
 		Message string `json:"message,omitempty" example:"user not found" doc:"Errors in appending invitation to user"`
 	}
