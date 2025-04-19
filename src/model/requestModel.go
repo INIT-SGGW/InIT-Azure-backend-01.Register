@@ -155,8 +155,9 @@ type AppendTeamInvitationRequest struct {
 type GetUserNotificationsRequest struct {
 	JwtCookie http.Cookie `cookie:"jwt"`
 	Id        string      `path:"id" example:"67c0df2b24397b2e860be392" doc:"requested user id"`
+	Service   string      `query:"service" example:"ha" doc:"Name of a service, which notifications user is trying to get. If not provided, all notifications are returned"`
 
-	Body struct {
-		Service string `json:"service,omitempty" example:"ha" doc:"Name of a service, which notifications user is trying to get. If not provided, all notifications are returned"`
-	}
+	// Body struct {
+	// 	Service string `json:"service,omitempty" example:"ha" doc:"Name of a service, which notifications user is trying to get. If not provided, all notifications are returned"`
+	// }
 }

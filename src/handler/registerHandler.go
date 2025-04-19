@@ -603,7 +603,7 @@ func (han RegisterHandler) HandleGetUserNotificationsRequest(ctx context.Context
 		return &resp, nil
 	}
 
-	dbNotifications, err := han.registerService.GetUserNotifications(ctx, input.Id, &input.Body.Service)
+	dbNotifications, err := han.registerService.GetUserNotifications(ctx, input.Id, &input.Service)
 	if err != nil {
 		han.handler.logger.Error("Error retreiving user notifications from database",
 			zap.String("userId", input.Id),
