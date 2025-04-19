@@ -76,6 +76,7 @@ type GetUserByEmailResponse struct {
 		StudentIndex          string    `json:"studentIndex" example:"222222" doc:"Student index"`
 		Occupation            string    `json:"occupation" example:"Student" doc:"Occupation of user"`
 		DietPreference        string    `json:"dietPreference" example:"Vegetarian" doc:"Diet preferences of user"`
+		EventTags             []string  `json:"eventTags" example:"[\"ha\", \"icc\"]" doc:"Tags of events user is in"`
 	}
 }
 

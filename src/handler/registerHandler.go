@@ -347,6 +347,7 @@ func (han RegisterHandler) HandleGetUserByEmailRequest(ctx context.Context, inpu
 	resp.Body.Occupation = userDbo.Occupation
 	resp.Body.DietPreference = userDbo.DietPreference
 	resp.Body.StudentIndex = userDbo.StudentIndex
+	resp.Body.EventTags = userDbo.Events
 
 	han.handler.logger.Info("User sucesfully mapped to response",
 		zap.String("userId", userDbo.ID.String()),
