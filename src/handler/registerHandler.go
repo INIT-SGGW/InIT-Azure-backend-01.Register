@@ -22,12 +22,12 @@ type RegisterHandler struct {
 	authToken       *jwtauth.JWTAuth
 }
 
-func NewRegisterHandler(logger *zap.Logger, authToken *jwtauth.JWTAuth, repository repository.MongoRepository, user, password, emailHost, emailPort, emailSender, verificationLinkHost string) *RegisterHandler {
+func NewRegisterHandler(logger *zap.Logger, authToken *jwtauth.JWTAuth, repository repository.MongoRepository, user, password, emailHost, emailPort, emailSender, ICCDomain, HADomain string) *RegisterHandler {
 
 	return &RegisterHandler{
 		handler:         NewHandler(logger),
 		registerService: service.NewRegisterService(logger, repository),
-		emailService:    service.NewEmailService(logger, user, password, emailHost, emailPort, emailSender, verificationLinkHost, repository),
+		emailService:    service.NewEmailService(logger, user, password, emailHost, emailPort, emailSender, ICCDomain, HADomain, repository),
 		authToken:       authToken,
 	}
 }

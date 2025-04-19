@@ -18,14 +18,15 @@ import (
 )
 
 type EmailService struct {
-	service              *Service
-	user                 string
-	password             string
-	emailHost            string
-	emailPort            string
-	emailSender          string
-	repository           repository.EmailRepository
-	verificationLinkHost string
+	service     *Service
+	user        string
+	password    string
+	emailHost   string
+	emailPort   string
+	emailSender string
+	repository  repository.EmailRepository
+	ICCDomain   string
+	HADomain    string
 }
 
 type EmailTemplateService interface {
@@ -36,39 +37,48 @@ type EmailTemplateService interface {
 	SendCreateUserEmail(ctx context.Context, user model.User) error
 }
 
-func NewEmailService(logger *zap.Logger, user, password, emailHost, emailPort, emailSender, verificationLinkHost string, repository repository.EmailRepository) *EmailService {
+func NewEmailService(logger *zap.Logger, user, password, emailHost, emailPort, emailSender, ICCDomain, HADomain string, repository repository.EmailRepository) *EmailService {
 	return &EmailService{
-		service:              NewService(logger),
-		user:                 user,
-		password:             password,
-		emailHost:            emailHost,
-		emailPort:            emailPort,
-		emailSender:          emailSender,
-		repository:           repository,
-		verificationLinkHost: verificationLinkHost,
+		service:     NewService(logger),
+		user:        user,
+		password:    password,
+		emailHost:   emailHost,
+		emailPort:   emailPort,
+		emailSender: emailSender,
+		repository:  repository,
+		ICCDomain:   ICCDomain,
+		HADomain:    HADomain,
 	}
 }
 
 func (srv EmailService) SendUserVerificationEmail(ctx context.Context, service string, user model.User) error {
 	defer srv.service.logger.Sync()
 
-	templateName := ""
-	switch service {
-	case "icc":
-		{
-			templateName = "icc_account_verification"
-		}
-	case "ha":
-		{
-			templateName = "ha_account_verification"
-		}
-	default:
-		{
-			srv.service.logger.Error("Service not supported",
-				zap.String("service", service))
-			return errors.New("service not supported")
-		}
+	var emailConfigs = map[string]struct {
+		Domain        string
+		VerifyURLPath string
+		TemplateName  string
+	}{
+		"icc": {
+			Domain:        srv.ICCDomain,
+			VerifyURLPath: "/register/email/verification",
+			TemplateName:  "icc_account_verification",
+		},
+		"ha": {
+			Domain:        srv.HADomain,
+			VerifyURLPath: "/rejestracja/email/weryfikcja",
+			TemplateName:  "ha_account_verification",
+		},
 	}
+
+	config, ok := emailConfigs[service]
+	if !ok {
+		srv.service.logger.Error("Service not supported",
+			zap.String("service", service))
+		return errors.New("service not supported")
+	}
+
+	templateName := config.TemplateName
 
 	emailTmpl, err := srv.repository.GetSingleTemplateByName(templateName, ctx)
 	if err != nil {
@@ -77,14 +87,14 @@ func (srv EmailService) SendUserVerificationEmail(ctx context.Context, service s
 			zap.Error(err))
 		return err
 	}
-	linkUrl, err := url.Parse(srv.verificationLinkHost)
+	linkUrl, err := url.Parse(config.Domain)
 	if err != nil {
 		srv.service.logger.Error("Error creating verification link",
 			zap.String("templateName", templateName),
 			zap.Error(err))
 		return err
 	}
-	linkUrl.Path += "/register/email/verification"
+	linkUrl.Path += config.VerifyURLPath
 	params := url.Values{}
 	for _, email := range user.Emails {
 		params.Add("email", email)
@@ -139,14 +149,14 @@ func (srv EmailService) SendCreateUserEmail(ctx context.Context, user model.User
 			zap.Error(err))
 		return err
 	}
-	linkUrl, err := url.Parse(srv.verificationLinkHost)
+	linkUrl, err := url.Parse(srv.HADomain)
 	if err != nil {
 		srv.service.logger.Error("Error creating verification link",
 			zap.String("templateName", templateName),
 			zap.Error(err))
 		return err
 	}
-	linkUrl.Path += "/register/email/verification"
+	linkUrl.Path += "/rejestracja/uzytkownik/zaproszenie"
 	params := url.Values{}
 	for _, email := range user.Emails {
 		params.Add("email", email)
@@ -201,7 +211,7 @@ func (srv EmailService) SendEmailVerificationEmail(ctx context.Context, user mod
 			zap.Error(err))
 		return err
 	}
-	linkUrl, err := url.Parse(srv.verificationLinkHost)
+	linkUrl, err := url.Parse(srv.ICCDomain)
 	if err != nil {
 		srv.service.logger.Error("Error creating verification link",
 			zap.String("templateName", templateName),
@@ -356,7 +366,7 @@ func (srv EmailService) SendAdminVerificationEmail(ctx context.Context, admin mo
 			zap.Error(err))
 		return err
 	}
-	linkUrl, err := url.Parse(srv.verificationLinkHost)
+	linkUrl, err := url.Parse(srv.ICCDomain)
 	if err != nil {
 		srv.service.logger.Error("Error creating verification link",
 			zap.String("templateName", templateName),

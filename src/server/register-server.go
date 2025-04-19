@@ -30,8 +30,8 @@ func main() {
 	authToken := jwtauth.New("HS256", []byte(config.JWTSecret), nil)
 
 	repo := repository.NewRegisterRepository(config.DbConnStr, config.DbName, logger)
-	registerHandler := handler.NewRegisterHandler(logger, authToken, repo, config.SmtpUser, config.SmtpPass, config.SmtpHost, config.SmtpPort, config.SmtpSenderEmail, config.VerificationLinkHost)
-	adminHandler := handler.NewAdminHandler(logger, authToken, repo, config.SmtpUser, config.SmtpPass, config.SmtpHost, config.SmtpPort, config.SmtpSenderEmail, config.VerificationLinkHost)
+	registerHandler := handler.NewRegisterHandler(logger, authToken, repo, config.SmtpUser, config.SmtpPass, config.SmtpHost, config.SmtpPort, config.SmtpSenderEmail, config.ICCDomain, config.HADomain)
+	adminHandler := handler.NewAdminHandler(logger, authToken, repo, config.SmtpUser, config.SmtpPass, config.SmtpHost, config.SmtpPort, config.SmtpSenderEmail, config.ICCDomain, config.HADomain)
 
 	r := chi.NewRouter()
 
