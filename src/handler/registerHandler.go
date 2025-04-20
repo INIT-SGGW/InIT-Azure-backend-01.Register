@@ -166,7 +166,12 @@ func (han RegisterHandler) HandleLoginUserRequest(ctx context.Context, input *mo
 		return &resp, nil
 	}
 
-	claims := map[string]interface{}{"id": user.ID, "email": input.Body.Email}
+	claims := map[string]interface{}{
+		"id":    user.ID,
+		"email": input.Body.Email,
+		"iat":   time.Now().Unix(),
+	}
+
 	_, tokenString, err := han.authToken.Encode(claims)
 	if err != nil {
 		han.handler.logger.Error("Error creating token",
