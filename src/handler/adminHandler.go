@@ -21,12 +21,12 @@ type AdminHandler struct {
 	authToken    *jwtauth.JWTAuth
 }
 
-func NewAdminHandler(logger *zap.Logger, authToken *jwtauth.JWTAuth, repository repository.MongoRepository, user, password, emailHost, emailPort, emailSender, verificationLinkHost string) *AdminHandler {
+func NewAdminHandler(logger *zap.Logger, authToken *jwtauth.JWTAuth, repository repository.MongoRepository, user, password, emailHost, emailPort, emailSender, ICCDomain, HADomain string) *AdminHandler {
 
 	return &AdminHandler{
 		handler:      NewHandler(logger),
 		adminService: service.NewAdminService(logger, repository),
-		emailService: service.NewEmailService(logger, user, password, emailHost, emailPort, emailSender, verificationLinkHost, repository),
+		emailService: service.NewEmailService(logger, user, password, emailHost, emailPort, emailSender, ICCDomain, HADomain, repository),
 		authToken:    authToken,
 	}
 }

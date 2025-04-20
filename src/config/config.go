@@ -7,20 +7,21 @@ import (
 )
 
 type envConfig struct {
-	Env                  string
-	DbConnStr            string
-	DbName               string
-	LogPath              string
-	ListenPort           string
-	SmtpPass             string
-	SmtpUser             string
-	SmtpPort             string
-	SmtpHost             string
-	SmtpSenderEmail      string
-	VerificationLinkHost string
-	JWTSecret            string
-	ApiKey               string
-	AdminApiKey          string
+	Env             string
+	DbConnStr       string
+	DbName          string
+	LogPath         string
+	ListenPort      string
+	SmtpPass        string
+	SmtpUser        string
+	SmtpPort        string
+	SmtpHost        string
+	SmtpSenderEmail string
+	ICCDomain       string
+	HADomain        string
+	JWTSecret       string
+	ApiKey          string
+	AdminApiKey     string
 }
 
 func NewEnvConfig() envConfig {
@@ -81,9 +82,14 @@ func NewEnvConfig() envConfig {
 		err = errors.Join(err, errors.New("Missing environment variable INIT_SMTP_SENDER_EMAIL"))
 
 	}
-	VerificationLinkHost, exist := os.LookupEnv("INIT_VERI_LINK_BASE")
+	ICCDomain, exist := os.LookupEnv("INIT_ICC_DOMAIN")
 	if !exist {
-		err = errors.Join(err, errors.New("Missing environment variable INIT_VERI_LINK_BASE"))
+		err = errors.Join(err, errors.New("Missing environment variable INIT_ICC_DOMAIN"))
+
+	}
+	HADomain, exist := os.LookupEnv("INIT_HA_DOMAIN")
+	if !exist {
+		err = errors.Join(err, errors.New("Missing environment variable INIT_HA_DOMAIN"))
 
 	}
 
@@ -109,20 +115,21 @@ func NewEnvConfig() envConfig {
 	}
 
 	return envConfig{
-		Env:                  env,
-		LogPath:              logPath,
-		DbConnStr:            connString,
-		DbName:               dbname,
-		ListenPort:           listenPort,
-		SmtpPass:             smtpPass,
-		SmtpUser:             SmtpUser,
-		SmtpPort:             SmtpPort,
-		SmtpHost:             SmtpHost,
-		SmtpSenderEmail:      SmtpSenderEmail,
-		VerificationLinkHost: VerificationLinkHost,
-		JWTSecret:            JWTSecret,
-		ApiKey:               ApiKey,
-		AdminApiKey:          AdminApiKey,
+		Env:             env,
+		LogPath:         logPath,
+		DbConnStr:       connString,
+		DbName:          dbname,
+		ListenPort:      listenPort,
+		SmtpPass:        smtpPass,
+		SmtpUser:        SmtpUser,
+		SmtpPort:        SmtpPort,
+		SmtpHost:        SmtpHost,
+		SmtpSenderEmail: SmtpSenderEmail,
+		ICCDomain:       ICCDomain,
+		HADomain:        HADomain,
+		JWTSecret:       JWTSecret,
+		ApiKey:          ApiKey,
+		AdminApiKey:     AdminApiKey,
 	}
 
 }

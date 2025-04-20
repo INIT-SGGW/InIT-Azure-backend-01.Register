@@ -10,6 +10,7 @@ import (
 	"html/template"
 	"net/url"
 	"strconv"
+	textTemplate "text/template"
 
 	"go.mongodb.org/mongo-driver/mongo"
 
@@ -18,14 +19,15 @@ import (
 )
 
 type EmailService struct {
-	service              *Service
-	user                 string
-	password             string
-	emailHost            string
-	emailPort            string
-	emailSender          string
-	repository           repository.EmailRepository
-	verificationLinkHost string
+	service     *Service
+	user        string
+	password    string
+	emailHost   string
+	emailPort   string
+	emailSender string
+	repository  repository.EmailRepository
+	ICCDomain   string
+	HADomain    string
 }
 
 type EmailTemplateService interface {
@@ -36,39 +38,48 @@ type EmailTemplateService interface {
 	SendCreateUserEmail(ctx context.Context, user model.User) error
 }
 
-func NewEmailService(logger *zap.Logger, user, password, emailHost, emailPort, emailSender, verificationLinkHost string, repository repository.EmailRepository) *EmailService {
+func NewEmailService(logger *zap.Logger, user, password, emailHost, emailPort, emailSender, ICCDomain, HADomain string, repository repository.EmailRepository) *EmailService {
 	return &EmailService{
-		service:              NewService(logger),
-		user:                 user,
-		password:             password,
-		emailHost:            emailHost,
-		emailPort:            emailPort,
-		emailSender:          emailSender,
-		repository:           repository,
-		verificationLinkHost: verificationLinkHost,
+		service:     NewService(logger),
+		user:        user,
+		password:    password,
+		emailHost:   emailHost,
+		emailPort:   emailPort,
+		emailSender: emailSender,
+		repository:  repository,
+		ICCDomain:   ICCDomain,
+		HADomain:    HADomain,
 	}
 }
 
 func (srv EmailService) SendUserVerificationEmail(ctx context.Context, service string, user model.User) error {
 	defer srv.service.logger.Sync()
 
-	templateName := ""
-	switch service {
-	case "icc":
-		{
-			templateName = "icc_account_verification"
-		}
-	case "ha":
-		{
-			templateName = "ha_account_verification"
-		}
-	default:
-		{
-			srv.service.logger.Error("Service not supported",
-				zap.String("service", service))
-			return errors.New("service not supported")
-		}
+	var emailConfigs = map[string]struct {
+		Domain        string
+		VerifyURLPath string
+		TemplateName  string
+	}{
+		"icc": {
+			Domain:        srv.ICCDomain,
+			VerifyURLPath: "/register/email/verification",
+			TemplateName:  "icc_account_verification",
+		},
+		"ha": {
+			Domain:        srv.HADomain,
+			VerifyURLPath: "/rejestracja/email/weryfikacja",
+			TemplateName:  "ha_account_verification",
+		},
 	}
+
+	config, ok := emailConfigs[service]
+	if !ok {
+		srv.service.logger.Error("Service not supported",
+			zap.String("service", service))
+		return errors.New("service not supported")
+	}
+
+	templateName := config.TemplateName
 
 	emailTmpl, err := srv.repository.GetSingleTemplateByName(templateName, ctx)
 	if err != nil {
@@ -77,14 +88,14 @@ func (srv EmailService) SendUserVerificationEmail(ctx context.Context, service s
 			zap.Error(err))
 		return err
 	}
-	linkUrl, err := url.Parse(srv.verificationLinkHost)
+	linkUrl, err := url.Parse(config.Domain)
 	if err != nil {
 		srv.service.logger.Error("Error creating verification link",
 			zap.String("templateName", templateName),
 			zap.Error(err))
 		return err
 	}
-	linkUrl.Path += "/register/email/verification"
+	linkUrl.Path += config.VerifyURLPath
 	params := url.Values{}
 	for _, email := range user.Emails {
 		params.Add("email", email)
@@ -92,11 +103,12 @@ func (srv EmailService) SendUserVerificationEmail(ctx context.Context, service s
 	params.Add("token", user.VerificationToken)
 	linkUrl.RawQuery += params.Encode()
 
+	link := linkUrl.String()
 	templUser := model.UserVerificationEmailTemplateModel{
 		Sender:            srv.emailSender,
 		VerificationToken: user.VerificationToken,
 		Recipients:        user.Emails,
-		VerificationLink:  linkUrl.String(),
+		VerificationLink:  template.URL(link),
 	}
 
 	email, err := srv.fillTemplate(emailTmpl, templUser)
@@ -109,7 +121,6 @@ func (srv EmailService) SendUserVerificationEmail(ctx context.Context, service s
 
 	port, _ := strconv.Atoi(srv.emailPort)
 	dialer := gomail.NewDialer(srv.emailHost, port, srv.user, srv.password)
-
 	err = dialer.DialAndSend(email)
 	if err != nil {
 		srv.service.logger.Error("Error sending email",
@@ -139,14 +150,14 @@ func (srv EmailService) SendCreateUserEmail(ctx context.Context, user model.User
 			zap.Error(err))
 		return err
 	}
-	linkUrl, err := url.Parse(srv.verificationLinkHost)
+	linkUrl, err := url.Parse(srv.HADomain)
 	if err != nil {
 		srv.service.logger.Error("Error creating verification link",
 			zap.String("templateName", templateName),
 			zap.Error(err))
 		return err
 	}
-	linkUrl.Path += "/register/email/verification"
+	linkUrl.Path += "/rejestracja/uzytkownik/zaproszenie"
 	params := url.Values{}
 	for _, email := range user.Emails {
 		params.Add("email", email)
@@ -154,11 +165,12 @@ func (srv EmailService) SendCreateUserEmail(ctx context.Context, user model.User
 	params.Add("token", user.VerificationToken)
 	linkUrl.RawQuery += params.Encode()
 
+	link := linkUrl.String()
 	templUser := model.UserVerificationEmailTemplateModel{
 		Sender:            srv.emailSender,
 		VerificationToken: user.VerificationToken,
 		Recipients:        user.Emails,
-		VerificationLink:  linkUrl.String(),
+		VerificationLink:  template.URL(link),
 	}
 
 	email, err := srv.fillTemplate(emailTmpl, templUser)
@@ -201,7 +213,7 @@ func (srv EmailService) SendEmailVerificationEmail(ctx context.Context, user mod
 			zap.Error(err))
 		return err
 	}
-	linkUrl, err := url.Parse(srv.verificationLinkHost)
+	linkUrl, err := url.Parse(srv.ICCDomain)
 	if err != nil {
 		srv.service.logger.Error("Error creating verification link",
 			zap.String("templateName", templateName),
@@ -216,11 +228,12 @@ func (srv EmailService) SendEmailVerificationEmail(ctx context.Context, user mod
 
 	emailList := []string{email}
 
+	link := linkUrl.String()
 	templUser := model.UserVerificationEmailTemplateModel{
 		Sender:            srv.emailSender,
 		VerificationToken: user.VerificationToken,
 		Recipients:        emailList,
-		VerificationLink:  linkUrl.String(),
+		VerificationLink:  template.URL(link),
 	}
 
 	message, err := srv.fillTemplate(emailTmpl, templUser)
@@ -321,7 +334,7 @@ func (srv EmailService) fillTemplate(emailTmpl model.EmailTemplate, templModel m
 	message.SetBody("text/html", buf.String())
 
 	textTmplName := fmt.Sprintf("%s_text", emailTmpl.TemplateName)
-	textTemplate, err := template.New(textTmplName).Parse(emailTmpl.TemplateAlternateBody)
+	textTemplate, err := textTemplate.New(textTmplName).Parse(emailTmpl.TemplateAlternateBody)
 	if err != nil {
 		srv.service.logger.Error("Error parsing template headers",
 			zap.String("templateName", htmlTmplName),
@@ -356,7 +369,7 @@ func (srv EmailService) SendAdminVerificationEmail(ctx context.Context, admin mo
 			zap.Error(err))
 		return err
 	}
-	linkUrl, err := url.Parse(srv.verificationLinkHost)
+	linkUrl, err := url.Parse(srv.ICCDomain)
 	if err != nil {
 		srv.service.logger.Error("Error creating verification link",
 			zap.String("templateName", templateName),
@@ -372,11 +385,12 @@ func (srv EmailService) SendAdminVerificationEmail(ctx context.Context, admin mo
 	linkUrl.RawQuery += params.Encode()
 
 	// we can use the same template as for user verification
+	link := linkUrl.String()
 	templUser := model.UserVerificationEmailTemplateModel{
 		Sender:            srv.emailSender,
 		VerificationToken: admin.VerificationToken,
 		Recipients:        []string{admin.Email},
-		VerificationLink:  linkUrl.String(),
+		VerificationLink:  template.URL(link),
 	}
 
 	email, err := srv.fillTemplate(emailTmpl, templUser)
