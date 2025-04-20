@@ -341,6 +341,7 @@ func (repo MongoRepository) CreateUserFromInvitation(ctx context.Context, user m
 			{Key: "student_index", Value: user.StudentIndex},
 			{Key: "occupation", Value: user.Occupation},
 			{Key: "diet_preference", Value: user.DietPreference},
+			{Key: "events", Value: user.Events},
 		}},
 		{Key: "$set", Value: bson.D{{Key: "verified", Value: true}}},
 	}
