@@ -202,11 +202,20 @@ func addRoutes(api huma.API, handler handler.RegisterHandler, apiKey string) {
 	huma.Register(api, huma.Operation{
 		OperationID: "get-notifications",
 		Method:      http.MethodGet,
-		Path:        "/register/user/notifications/{id}",
+		Path:        "/register/user/{id}/notifications",
 		Summary:     "Get notfications",
 		Description: "Get notfications for user, based on service. If service not specified, all notifications are returned",
 		Middlewares: huma.Middlewares{middleware},
 	}, handler.HandleGetUserNotificationsRequest)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "change-notification-status",
+		Method:      http.MethodPatch,
+		Path:        "/register/user/{userId}/notifications/{notificationId}/status",
+		Summary:     "Change notification status",
+		Description: "Change notification status for user",
+		Middlewares: huma.Middlewares{middleware},
+	}, handler.HandleChangeNotificationStatusRequest)
 }
 
 func addAdminRoutes(api huma.API, handler handler.AdminHandler, adminApiKey string) {

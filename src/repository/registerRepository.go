@@ -41,6 +41,7 @@ type RegisterRepository interface {
 	CreateUserFromInvitation(ctx context.Context, user model.User, token string) (model.User, error)
 	AppendNotificationToUser(ctx context.Context, notification model.Notification) error
 	GetUserNotifications(ctx context.Context, userId string, service *string) ([]model.Notification, error)
+	ChangeNotificationStatus(ctx context.Context, userId string, notificationId string, status string) error
 }
 
 func NewRegisterRepository(connectionString, dbname string, logger *zap.Logger) MongoRepository {
@@ -400,7 +401,7 @@ func (repo MongoRepository) GetUserNotifications(ctx context.Context, userId str
 			zap.Error(err))
 	}
 
-	filter := bson.D{{Key: "userId", Value: queryId}}
+	filter := bson.D{{Key: "userId", Value: queryId}, {Key: "status", Value: "not-read"}}
 	if *service != "" {
 		filter = append(filter, bson.E{Key: "service", Value: *service})
 	}
@@ -438,4 +439,53 @@ func (repo MongoRepository) GetUserNotifications(ctx context.Context, userId str
 	repo.logger.Info("Sucesfully retreive notifications from database")
 
 	return notifications, nil
+}
+
+func (repo MongoRepository) ChangeNotificationStatus(ctx context.Context, userId string, notificationId string, status string) error {
+	defer repo.logger.Sync()
+
+	repo.logger.Debug("In ChangeNotificationStatus method")
+
+	coll := repo.client.Database(repo.database).Collection(NOTIFICATIONS_COLLECTION_NAME)
+
+	queryId, err := primitive.ObjectIDFromHex(userId)
+	if err != nil {
+		repo.logger.Error("Cannot parse id to ObjectId",
+			zap.String("database", repo.database),
+			zap.String("collection", NOTIFICATIONS_COLLECTION_NAME),
+			zap.String("id", userId),
+			zap.Error(err))
+	}
+
+	notificationObjectId, err := primitive.ObjectIDFromHex(notificationId)
+	if err != nil {
+		repo.logger.Error("Cannot parse id to ObjectId",
+			zap.String("database", repo.database),
+			zap.String("collection", NOTIFICATIONS_COLLECTION_NAME),
+			zap.String("id", notificationId),
+			zap.Error(err))
+	}
+
+	filter := bson.D{{Key: "_id", Value: notificationObjectId}, {Key: "userId", Value: queryId}}
+	update := bson.D{{Key: "$set", Value: bson.D{{Key: "status", Value: status}}}}
+
+	result, err := coll.UpdateOne(ctx, filter, update)
+	if err != nil {
+		repo.logger.Error("Error updating notification in database",
+			zap.String("database", repo.database),
+			zap.String("collection", NOTIFICATIONS_COLLECTION_NAME),
+			zap.Error(err))
+		return err
+	}
+	if result.MatchedCount == 0 {
+		repo.logger.Error("Cannot find following notification in database",
+			zap.String("database", repo.database),
+			zap.String("collection", NOTIFICATIONS_COLLECTION_NAME),
+			zap.String("notificationId", notificationObjectId.String()),
+			zap.Error(err))
+
+		return errors.New("notification not found")
+	}
+
+	return nil
 }

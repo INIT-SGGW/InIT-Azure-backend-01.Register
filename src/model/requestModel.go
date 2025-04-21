@@ -161,3 +161,13 @@ type GetUserNotificationsRequest struct {
 	// 	Service string `json:"service,omitempty" example:"ha" doc:"Name of a service, which notifications user is trying to get. If not provided, all notifications are returned"`
 	// }
 }
+
+type ChangeNotificationStatusRequest struct {
+	JwtCookie      http.Cookie `cookie:"jwt"`
+	UserId         string      `path:"userId" example:"67c0df2b24397b2e860be392" doc:"requested user id"`
+	NotificationId string      `path:"notificationId" example:"67c0df2b24397b2e860be392" doc:"requested notification id"`
+
+	Body struct {
+		Status string `json:"status" example:"read" doc:"Status of notification to be changed"`
+	}
+}
