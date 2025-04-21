@@ -640,3 +640,59 @@ func (han RegisterHandler) HandleGetUserNotificationsRequest(ctx context.Context
 
 	return &resp, nil
 }
+
+func (han RegisterHandler) HandleChangeNotificationStatusRequest(ctx context.Context, input *model.ChangeNotificationStatusRequest) (*model.ChangeNotificationStatusResponse, error) {
+	defer han.handler.logger.Sync()
+
+	han.handler.logger.Debug("In HandleChangeNotificationStatusRequest method")
+
+	resp := model.ChangeNotificationStatusResponse{}
+
+	token, err := jwtauth.VerifyToken(han.authToken, input.JwtCookie.Value)
+	if err != nil {
+		han.handler.logger.Error("Error verifying token",
+			zap.Error(err))
+		resp.Status = http.StatusUnauthorized
+		resp.Body.Status = "user not authenticated"
+		resp.Body.Message = "Error in token verification"
+		return &resp, nil
+	}
+
+	claims := token.PrivateClaims()
+	id, exist := claims["id"]
+	if !exist {
+		han.handler.logger.Error("The id field is not present in the token")
+		resp.Status = http.StatusUnauthorized
+		resp.Body.Status = "user not authenticated"
+		resp.Body.Message = "No user id in token"
+		return &resp, nil
+	}
+
+	if id.(string) != input.UserId {
+		han.handler.logger.Error("The id field do not match with the one in request")
+		resp.Status = http.StatusForbidden
+		resp.Body.Status = "user can't access other users notifications"
+		resp.Body.Message = "The id field do not match with the one in request"
+		return &resp, nil
+	}
+	han.handler.logger.Info("User token and id sucesfully verified")
+
+	err = han.registerService.ChangeNotificationStatus(ctx, input.UserId, input.NotificationId, input.Body.Status)
+	if err != nil {
+		han.handler.logger.Error("Error changing notification status",
+			zap.String("userId", input.UserId),
+			zap.String("notificationId", input.NotificationId),
+			zap.Error(err))
+
+		resp.Status = http.StatusInternalServerError
+		resp.Body.Status = "error changing notification status"
+		resp.Body.Message = err.Error()
+		return &resp, err
+	}
+
+	resp.Status = http.StatusOK
+	resp.Body.Status = "sucesfully changed notification status"
+
+	return &resp, nil
+
+}
