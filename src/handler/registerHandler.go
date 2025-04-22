@@ -192,6 +192,18 @@ func (han RegisterHandler) HandleLoginUserRequest(ctx context.Context, input *mo
 		Path:     "/",
 	}
 
+	err = han.registerService.AssignUserToEvent(ctx, user.ID.Hex(), input.Body.Service, false)
+	if err != nil {
+		han.handler.logger.Error("Error assigning user to event",
+			zap.String("event", input.Body.Service),
+			zap.String("userId", user.ID.String()),
+			zap.Error(err))
+		resp.Body.Error = err.Error()
+		resp.Body.Status = "user cannot be assigned to event"
+		resp.Status = http.StatusBadRequest
+		return &resp, nil
+	}
+
 	resp.Body.UserID = user.ID.String()
 	resp.Body.Status = "sucesfully log in"
 	resp.Status = http.StatusOK
@@ -477,7 +489,7 @@ func (han RegisterHandler) HandleAssignToEventRequest(ctx context.Context, input
 		return &resp, nil
 	}
 
-	err = han.registerService.AssignUserToEvent(ctx, id.(string), input.Body.Event)
+	err = han.registerService.AssignUserToEvent(ctx, id.(string), input.Body.Event, true)
 	if err != nil {
 		han.handler.logger.Error("Error assigning user to event",
 			zap.String("event", input.Body.Event),

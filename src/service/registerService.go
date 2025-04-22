@@ -29,7 +29,7 @@ type UserService interface {
 	GetUserById(id string, ctx context.Context) (model.User, error)
 	GetUserByEmail(email string, ctx context.Context) (model.User, error)
 	AddUserEmail(ctx context.Context, id string, email string) (model.User, error)
-	AssignUserToEvent(ctx context.Context, id string, event string) error
+	AssignUserToEvent(ctx context.Context, id string, event string, strict bool) error
 	CreateUserFromInvitation(ctx context.Context, user model.User, token string) (model.User, error)
 	CreateNewTempUser(ctx context.Context, email string) (model.User, error)
 	createTempUserModel(email string) model.User
@@ -385,7 +385,7 @@ func (serv RegisterService) isEventValid(event string, events []string) bool {
 	return false
 }
 
-func (serv RegisterService) AssignUserToEvent(ctx context.Context, id string, event string) error {
+func (serv RegisterService) AssignUserToEvent(ctx context.Context, id string, event string, strict bool) error {
 	defer serv.service.logger.Sync()
 
 	events := []string{"ha_25", "icc"}
@@ -395,7 +395,7 @@ func (serv RegisterService) AssignUserToEvent(ctx context.Context, id string, ev
 		return errors.New("Provided event is invalid")
 	}
 
-	err := serv.repository.AssignUserToEvent(ctx, id, event)
+	err := serv.repository.AssignUserToEvent(ctx, id, event, strict)
 	if err != nil {
 		return err
 	}

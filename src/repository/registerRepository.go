@@ -37,7 +37,7 @@ type RegisterRepository interface {
 	GetUserByEmail(ctx context.Context, email string) (model.User, error)
 	GetUserByID(ctx context.Context, id string) (model.User, error)
 	AddUserEmail(ctx context.Context, id string, email string) (model.User, error)
-	AssignUserToEvent(ctx context.Context, id string, event string) error
+	AssignUserToEvent(ctx context.Context, id string, event string, strict bool) error
 	CreateUserFromInvitation(ctx context.Context, user model.User, token string) (model.User, error)
 	AppendNotificationToUser(ctx context.Context, notification model.Notification) error
 	GetUserNotifications(ctx context.Context, userId string, service *string) ([]model.Notification, error)
@@ -290,7 +290,8 @@ func (repo MongoRepository) AddUserEmail(ctx context.Context, id string, email s
 	return updatedUser, err
 }
 
-func (repo MongoRepository) AssignUserToEvent(ctx context.Context, id string, event string) error {
+func (repo MongoRepository) AssignUserToEvent(ctx context.Context, id string, event string, strict bool) error {
+	// strict - if true, return error if user is already assigned to event
 	defer repo.logger.Sync()
 	repo.logger.Debug("In AssignUserToEvent method")
 	repo.logger.Info("Assigning user to event", zap.String("event", event), zap.String("userID", id))
@@ -310,7 +311,7 @@ func (repo MongoRepository) AssignUserToEvent(ctx context.Context, id string, ev
 		return err
 	}
 
-	if result.MatchedCount == 0 {
+	if result.MatchedCount == 0 && strict {
 		return errors.New("User already assigned to event")
 	}
 
