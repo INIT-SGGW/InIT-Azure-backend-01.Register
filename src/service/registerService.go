@@ -388,7 +388,7 @@ func (serv RegisterService) isEventValid(event string, events []string) bool {
 func (serv RegisterService) AssignUserToEvent(ctx context.Context, id string, event string, strict bool) error {
 	defer serv.service.logger.Sync()
 
-	events := []string{"ha_25", "icc"}
+	events := []string{"ha", "ha_25", "icc"}
 
 	if !serv.isEventValid(event, events) {
 		serv.service.logger.Error("Provided event is not valid", zap.String("event", event))
