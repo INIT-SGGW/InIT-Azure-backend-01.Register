@@ -102,10 +102,10 @@ func Recovery(next http.Handler) http.Handler {
 }
 
 var allowedOrigins = map[string]bool{
-	"http://localhost:3000": true,
-	"http://localhost:3001": true,
-	"http://localhost:3002": true,
-	"http://localhost:3003": true,
+	"http://localhost:5000": true,
+	"http://localhost:5001": true,
+	"http://localhost:4000": true,
+	"http://localhost:4001": true,
 }
 
 // CORS middleware
