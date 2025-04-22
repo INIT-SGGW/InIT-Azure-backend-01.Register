@@ -35,9 +35,7 @@ func main() {
 
 	r := chi.NewRouter()
 
-	if config.Env == "DEV" {
-		r.Use(initializer.CorsHandler)
-	}
+	r.Use(initializer.CorsHandler)
 	r.Use(initializer.New(logger))
 	r.Use(initializer.Recovery)
 	r.Route("/register/user", func(r chi.Router) {

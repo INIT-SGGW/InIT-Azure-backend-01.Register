@@ -101,11 +101,19 @@ func Recovery(next http.Handler) http.Handler {
 	})
 }
 
-var allowedOrigins = map[string]bool{
+var allowedOriginsDev = map[string]bool{
 	"http://localhost:5000": true,
 	"http://localhost:5001": true,
 	"http://localhost:4000": true,
 	"http://localhost:4001": true,
+}
+
+var allowedOriginsProd = map[string]bool{
+	"https://hackarena.pl": true,
+}
+
+var allowedOriginsTest = map[string]bool{
+	"https://hackarena.pl:5000": true,
 }
 
 // CORS middleware
@@ -113,9 +121,30 @@ func CorsHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
 
-		// Check if origin is in the allowed list
+		env := os.Getenv("INIT_ENV")
+		print("ENV: ", env)
+		print("Origin: ", origin)
+
+		var allowedOrigins map[string]bool
+		switch env {
+		case "DEV":
+			allowedOrigins = allowedOriginsDev
+		case "PROD":
+			allowedOrigins = allowedOriginsProd
+		case "TEST":
+			allowedOrigins = allowedOriginsTest
+		default:
+			allowedOrigins = allowedOriginsDev
+		}
+
+		print("Allowed origins: ")
+
+		for key := range allowedOrigins {
+			print(key)
+		}
+
 		if allowedOrigins[origin] {
-			w.Header().Set("Access-Control-Allow-Origin", origin) // Set allowed origin dynamically
+			w.Header().Set("Access-Control-Allow-Origin", origin)
 		}
 
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, X-ICC-API-KEY, Authorization, Accept, origin, Cache-Control, jwt, jwt-init-admin, Content-Security-Policy, X-INIT-ADMIN-API-KEY")
