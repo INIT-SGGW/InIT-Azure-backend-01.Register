@@ -567,18 +567,20 @@ func (han RegisterHandler) HandleAppendTeamInvitationRequest(ctx context.Context
 		}
 	}
 
-	args := map[string]string{
-		"teamId":   input.Body.TeamId,
-		"teamName": input.Body.TeamName,
-	}
+	if !input.Body.IsLeader {
+		args := map[string]string{
+			"teamId":   input.Body.TeamId,
+			"teamName": input.Body.TeamName,
+		}
 
-	err = han.registerService.AppendNotificationToUser(ctx, dbUser.ID, "ha_team_invite", "ha", nil, args)
-	if err != nil {
-		han.handler.logger.Error("Error appending invitation to user",
-			zap.String("teamId", input.Body.TeamId),
-			zap.String("userId", dbUser.ID.String()),
-			zap.Error(err))
-		return &resp, err
+		err = han.registerService.AppendNotificationToUser(ctx, dbUser.ID, "ha_team_invite", "ha", nil, args)
+		if err != nil {
+			han.handler.logger.Error("Error appending invitation to user",
+				zap.String("teamId", input.Body.TeamId),
+				zap.String("userId", dbUser.ID.String()),
+				zap.Error(err))
+			return &resp, err
+		}
 	}
 
 	resp.Body.UserId = dbUser.ID.Hex()
