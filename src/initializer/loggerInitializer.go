@@ -122,8 +122,6 @@ func CorsHandler(next http.Handler) http.Handler {
 		origin := r.Header.Get("Origin")
 
 		env := os.Getenv("INIT_ENV")
-		print("ENV: ", env)
-		print("Origin: ", origin)
 
 		var allowedOrigins map[string]bool
 		switch env {
@@ -135,12 +133,6 @@ func CorsHandler(next http.Handler) http.Handler {
 			allowedOrigins = allowedOriginsTest
 		default:
 			allowedOrigins = allowedOriginsDev
-		}
-
-		print("Allowed origins: ")
-
-		for key := range allowedOrigins {
-			print(key)
 		}
 
 		if allowedOrigins[origin] {
