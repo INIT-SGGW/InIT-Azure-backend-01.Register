@@ -54,8 +54,10 @@ func main() {
 	addRoutes(api, *registerHandler, config.ApiKey)
 	addAdminRoutes(api, *adminHandler, config.AdminApiKey)
 
-	http.ListenAndServe(fmt.Sprintf(":%s", config.ListenPort), r)
-
+	err := http.ListenAndServe(fmt.Sprintf(":%s", config.ListenPort), r)
+	if err != nil {
+		logger.Fatal("Error starting server", zap.Error(err))
+	}
 }
 
 func createHumaApi(title, version string, r chi.Router) huma.API {
