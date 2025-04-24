@@ -567,7 +567,7 @@ func (han RegisterHandler) HandleAppendTeamInvitationRequest(ctx context.Context
 		}
 	}
 
-	if !input.Body.IsLeader {
+	if !input.Body.AddNotification {
 		args := map[string]string{
 			"teamId":   input.Body.TeamId,
 			"teamName": input.Body.TeamName,
