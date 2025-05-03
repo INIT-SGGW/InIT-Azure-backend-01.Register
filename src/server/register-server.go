@@ -35,9 +35,7 @@ func main() {
 
 	r := chi.NewRouter()
 
-	if config.Env == "DEV" {
-		r.Use(initializer.CorsHandler)
-	}
+	r.Use(initializer.CorsHandler)
 	r.Use(initializer.New(logger))
 	r.Use(initializer.Recovery)
 	r.Route("/register/user", func(r chi.Router) {
@@ -56,8 +54,10 @@ func main() {
 	addRoutes(api, *registerHandler, config.ApiKey)
 	addAdminRoutes(api, *adminHandler, config.AdminApiKey)
 
-	http.ListenAndServe(fmt.Sprintf(":%s", config.ListenPort), r)
-
+	err := http.ListenAndServe(fmt.Sprintf(":%s", config.ListenPort), r)
+	if err != nil {
+		logger.Fatal("Error starting server", zap.Error(err))
+	}
 }
 
 func createHumaApi(title, version string, r chi.Router) huma.API {
@@ -202,11 +202,20 @@ func addRoutes(api huma.API, handler handler.RegisterHandler, apiKey string) {
 	huma.Register(api, huma.Operation{
 		OperationID: "get-notifications",
 		Method:      http.MethodGet,
-		Path:        "/register/user/notifications/{id}",
+		Path:        "/register/user/{id}/notifications",
 		Summary:     "Get notfications",
 		Description: "Get notfications for user, based on service. If service not specified, all notifications are returned",
 		Middlewares: huma.Middlewares{middleware},
 	}, handler.HandleGetUserNotificationsRequest)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "change-notification-status",
+		Method:      http.MethodPatch,
+		Path:        "/register/user/{userId}/notifications/{notificationId}/status",
+		Summary:     "Change notification status",
+		Description: "Change notification status for user",
+		Middlewares: huma.Middlewares{middleware},
+	}, handler.HandleChangeNotificationStatusRequest)
 }
 
 func addAdminRoutes(api huma.API, handler handler.AdminHandler, adminApiKey string) {
@@ -229,7 +238,6 @@ func addAdminRoutes(api huma.API, handler handler.AdminHandler, adminApiKey stri
 	apiKeyMiddleware := func(ctx huma.Context, next func(huma.Context)) {
 		// Read a cookie by name.
 		providedKey := ctx.Header("X-INIT-ADMIN-API-KEY")
-		print(providedKey + " " + adminApiKey)
 		if providedKey != adminApiKey {
 			huma.WriteErr(api, ctx, http.StatusUnauthorized,
 				"the provided api key is incorrect", fmt.Errorf("Not logged as admin"),

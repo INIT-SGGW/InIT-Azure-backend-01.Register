@@ -166,7 +166,12 @@ func (han RegisterHandler) HandleLoginUserRequest(ctx context.Context, input *mo
 		return &resp, nil
 	}
 
-	claims := map[string]interface{}{"id": user.ID, "email": input.Body.Email}
+	claims := map[string]interface{}{
+		"id":    user.ID,
+		"email": input.Body.Email,
+		"iat":   time.Now().Unix(),
+	}
+
 	_, tokenString, err := han.authToken.Encode(claims)
 	if err != nil {
 		han.handler.logger.Error("Error creating token",
@@ -185,6 +190,18 @@ func (han RegisterHandler) HandleLoginUserRequest(ctx context.Context, input *mo
 		Secure:   true,
 		SameSite: http.SameSiteLaxMode,
 		Path:     "/",
+	}
+
+	err = han.registerService.AssignUserToEvent(ctx, user.ID.Hex(), input.Body.Service, false)
+	if err != nil {
+		han.handler.logger.Error("Error assigning user to event",
+			zap.String("event", input.Body.Service),
+			zap.String("userId", user.ID.String()),
+			zap.Error(err))
+		resp.Body.Error = err.Error()
+		resp.Body.Status = "user cannot be assigned to event"
+		resp.Status = http.StatusBadRequest
+		return &resp, nil
 	}
 
 	resp.Body.UserID = user.ID.String()
@@ -472,7 +489,7 @@ func (han RegisterHandler) HandleAssignToEventRequest(ctx context.Context, input
 		return &resp, nil
 	}
 
-	err = han.registerService.AssignUserToEvent(ctx, id.(string), input.Body.Event)
+	err = han.registerService.AssignUserToEvent(ctx, id.(string), input.Body.Event, true)
 	if err != nil {
 		han.handler.logger.Error("Error assigning user to event",
 			zap.String("event", input.Body.Event),
@@ -550,18 +567,20 @@ func (han RegisterHandler) HandleAppendTeamInvitationRequest(ctx context.Context
 		}
 	}
 
-	args := map[string]string{
-		"teamId":   input.Body.TeamId,
-		"teamName": input.Body.TeamName,
-	}
+	if !input.Body.AddNotification {
+		args := map[string]string{
+			"teamId":   input.Body.TeamId,
+			"teamName": input.Body.TeamName,
+		}
 
-	err = han.registerService.AppendNotificationToUser(ctx, dbUser.ID, "ha_team_invite", "ha", nil, args)
-	if err != nil {
-		han.handler.logger.Error("Error appending invitation to user",
-			zap.String("teamId", input.Body.TeamId),
-			zap.String("userId", dbUser.ID.String()),
-			zap.Error(err))
-		return &resp, err
+		err = han.registerService.AppendNotificationToUser(ctx, dbUser.ID, "ha_team_invite", "ha", nil, args)
+		if err != nil {
+			han.handler.logger.Error("Error appending invitation to user",
+				zap.String("teamId", input.Body.TeamId),
+				zap.String("userId", dbUser.ID.String()),
+				zap.Error(err))
+			return &resp, err
+		}
 	}
 
 	resp.Body.UserId = dbUser.ID.Hex()
@@ -634,4 +653,60 @@ func (han RegisterHandler) HandleGetUserNotificationsRequest(ctx context.Context
 	resp.Status = http.StatusOK
 
 	return &resp, nil
+}
+
+func (han RegisterHandler) HandleChangeNotificationStatusRequest(ctx context.Context, input *model.ChangeNotificationStatusRequest) (*model.ChangeNotificationStatusResponse, error) {
+	defer han.handler.logger.Sync()
+
+	han.handler.logger.Debug("In HandleChangeNotificationStatusRequest method")
+
+	resp := model.ChangeNotificationStatusResponse{}
+
+	token, err := jwtauth.VerifyToken(han.authToken, input.JwtCookie.Value)
+	if err != nil {
+		han.handler.logger.Error("Error verifying token",
+			zap.Error(err))
+		resp.Status = http.StatusUnauthorized
+		resp.Body.Status = "user not authenticated"
+		resp.Body.Message = "Error in token verification"
+		return &resp, nil
+	}
+
+	claims := token.PrivateClaims()
+	id, exist := claims["id"]
+	if !exist {
+		han.handler.logger.Error("The id field is not present in the token")
+		resp.Status = http.StatusUnauthorized
+		resp.Body.Status = "user not authenticated"
+		resp.Body.Message = "No user id in token"
+		return &resp, nil
+	}
+
+	if id.(string) != input.UserId {
+		han.handler.logger.Error("The id field do not match with the one in request")
+		resp.Status = http.StatusForbidden
+		resp.Body.Status = "user can't access other users notifications"
+		resp.Body.Message = "The id field do not match with the one in request"
+		return &resp, nil
+	}
+	han.handler.logger.Info("User token and id sucesfully verified")
+
+	err = han.registerService.ChangeNotificationStatus(ctx, input.UserId, input.NotificationId, input.Body.Status)
+	if err != nil {
+		han.handler.logger.Error("Error changing notification status",
+			zap.String("userId", input.UserId),
+			zap.String("notificationId", input.NotificationId),
+			zap.Error(err))
+
+		resp.Status = http.StatusInternalServerError
+		resp.Body.Status = "error changing notification status"
+		resp.Body.Message = err.Error()
+		return &resp, err
+	}
+
+	resp.Status = http.StatusOK
+	resp.Body.Status = "sucesfully changed notification status"
+
+	return &resp, nil
+
 }

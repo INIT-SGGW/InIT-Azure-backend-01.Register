@@ -37,10 +37,11 @@ type RegisterRepository interface {
 	GetUserByEmail(ctx context.Context, email string) (model.User, error)
 	GetUserByID(ctx context.Context, id string) (model.User, error)
 	AddUserEmail(ctx context.Context, id string, email string) (model.User, error)
-	AssignUserToEvent(ctx context.Context, id string, event string) error
+	AssignUserToEvent(ctx context.Context, id string, event string, strict bool) error
 	CreateUserFromInvitation(ctx context.Context, user model.User, token string) (model.User, error)
 	AppendNotificationToUser(ctx context.Context, notification model.Notification) error
 	GetUserNotifications(ctx context.Context, userId string, service *string) ([]model.Notification, error)
+	ChangeNotificationStatus(ctx context.Context, userId string, notificationId string, status string) error
 }
 
 func NewRegisterRepository(connectionString, dbname string, logger *zap.Logger) MongoRepository {
@@ -289,7 +290,8 @@ func (repo MongoRepository) AddUserEmail(ctx context.Context, id string, email s
 	return updatedUser, err
 }
 
-func (repo MongoRepository) AssignUserToEvent(ctx context.Context, id string, event string) error {
+func (repo MongoRepository) AssignUserToEvent(ctx context.Context, id string, event string, strict bool) error {
+	// strict - if true, return error if user is already assigned to event
 	defer repo.logger.Sync()
 	repo.logger.Debug("In AssignUserToEvent method")
 	repo.logger.Info("Assigning user to event", zap.String("event", event), zap.String("userID", id))
@@ -309,7 +311,7 @@ func (repo MongoRepository) AssignUserToEvent(ctx context.Context, id string, ev
 		return err
 	}
 
-	if result.MatchedCount == 0 {
+	if result.MatchedCount == 0 && strict {
 		return errors.New("User already assigned to event")
 	}
 
@@ -341,6 +343,7 @@ func (repo MongoRepository) CreateUserFromInvitation(ctx context.Context, user m
 			{Key: "student_index", Value: user.StudentIndex},
 			{Key: "occupation", Value: user.Occupation},
 			{Key: "diet_preference", Value: user.DietPreference},
+			{Key: "events", Value: user.Events},
 		}},
 		{Key: "$set", Value: bson.D{{Key: "verified", Value: true}}},
 	}
@@ -399,7 +402,7 @@ func (repo MongoRepository) GetUserNotifications(ctx context.Context, userId str
 			zap.Error(err))
 	}
 
-	filter := bson.D{{Key: "userId", Value: queryId}}
+	filter := bson.D{{Key: "userId", Value: queryId}, {Key: "status", Value: "not-read"}}
 	if *service != "" {
 		filter = append(filter, bson.E{Key: "service", Value: *service})
 	}
@@ -437,4 +440,53 @@ func (repo MongoRepository) GetUserNotifications(ctx context.Context, userId str
 	repo.logger.Info("Sucesfully retreive notifications from database")
 
 	return notifications, nil
+}
+
+func (repo MongoRepository) ChangeNotificationStatus(ctx context.Context, userId string, notificationId string, status string) error {
+	defer repo.logger.Sync()
+
+	repo.logger.Debug("In ChangeNotificationStatus method")
+
+	coll := repo.client.Database(repo.database).Collection(NOTIFICATIONS_COLLECTION_NAME)
+
+	queryId, err := primitive.ObjectIDFromHex(userId)
+	if err != nil {
+		repo.logger.Error("Cannot parse id to ObjectId",
+			zap.String("database", repo.database),
+			zap.String("collection", NOTIFICATIONS_COLLECTION_NAME),
+			zap.String("id", userId),
+			zap.Error(err))
+	}
+
+	notificationObjectId, err := primitive.ObjectIDFromHex(notificationId)
+	if err != nil {
+		repo.logger.Error("Cannot parse id to ObjectId",
+			zap.String("database", repo.database),
+			zap.String("collection", NOTIFICATIONS_COLLECTION_NAME),
+			zap.String("id", notificationId),
+			zap.Error(err))
+	}
+
+	filter := bson.D{{Key: "_id", Value: notificationObjectId}, {Key: "userId", Value: queryId}}
+	update := bson.D{{Key: "$set", Value: bson.D{{Key: "status", Value: status}}}}
+
+	result, err := coll.UpdateOne(ctx, filter, update)
+	if err != nil {
+		repo.logger.Error("Error updating notification in database",
+			zap.String("database", repo.database),
+			zap.String("collection", NOTIFICATIONS_COLLECTION_NAME),
+			zap.Error(err))
+		return err
+	}
+	if result.MatchedCount == 0 {
+		repo.logger.Error("Cannot find following notification in database",
+			zap.String("database", repo.database),
+			zap.String("collection", NOTIFICATIONS_COLLECTION_NAME),
+			zap.String("notificationId", notificationObjectId.String()),
+			zap.Error(err))
+
+		return errors.New("notification not found")
+	}
+
+	return nil
 }

@@ -178,3 +178,12 @@ type GetUserNotificationsResponse struct {
 		Message       string                 `json:"message,omitempty" example:"user not found" doc:"Errors in getting notifications"`
 	}
 }
+
+type ChangeNotificationStatusResponse struct {
+	Status int
+
+	Body struct {
+		Status  string `json:"status" example:"success" doc:"Status of getting notifications"`
+		Message string `json:"message,omitempty" example:"user not found" doc:"Errors in getting notifications"`
+	}
+}

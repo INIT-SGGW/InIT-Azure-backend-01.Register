@@ -146,9 +146,10 @@ type AppendTeamInvitationRequest struct {
 	ApiKey string `header:"INIT-API-KEY"`
 
 	Body struct {
-		Email    string `json:"email" example:"john.doe@example.com" doc:"User email, who will be invited to the team"`
-		TeamId   string `json:"teamId" example:"67c0df2b24397b2e860be392" doc:"Team id to which user will be invited"`
-		TeamName string `json:"teamName" example:"Team name" doc:"Team name to which user will be invited"`
+		Email           string `json:"email" example:"john.doe@example.com" doc:"User email, who will be invited to the team"`
+		TeamId          string `json:"teamId" example:"67c0df2b24397b2e860be392" doc:"Team id to which user will be invited"`
+		TeamName        string `json:"teamName" example:"Team name" doc:"Team name to which user will be invited"`
+		AddNotification bool   `json:"addNotification" example:"true" doc:"Add notification to user about invitation"`
 	}
 }
 
@@ -160,4 +161,14 @@ type GetUserNotificationsRequest struct {
 	// Body struct {
 	// 	Service string `json:"service,omitempty" example:"ha" doc:"Name of a service, which notifications user is trying to get. If not provided, all notifications are returned"`
 	// }
+}
+
+type ChangeNotificationStatusRequest struct {
+	JwtCookie      http.Cookie `cookie:"jwt"`
+	UserId         string      `path:"userId" example:"67c0df2b24397b2e860be392" doc:"requested user id"`
+	NotificationId string      `path:"notificationId" example:"67c0df2b24397b2e860be392" doc:"requested notification id"`
+
+	Body struct {
+		Status string `json:"status" example:"read" doc:"Status of notification to be changed"`
+	}
 }
